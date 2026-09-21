@@ -73,7 +73,7 @@ npm run dev
 
 ## Databas, migration och demo-data
 
-1. Skapa ett **nytt** Supabase-projekt.
+1. Skapa ett **nytt** Supabase-projekt. Inaktivera öppna e-postregistreringar i Auth-inställningarna och sätt minst 12 tecken som lösenordspolicy; konton ska sedan provisioneras av en admin i appen.
 2. Kör hela innehållet i **supabase/migrations/20260920184847_ats_mvp.sql** i SQL Editor, eller länka CLI:t till projektet och kör migrationen:
 
    ~~~bash
@@ -131,6 +131,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm audit --omit=dev
 ~~~
 
 Manuell acceptanscheck:
@@ -145,7 +146,7 @@ Manuell acceptanscheck:
 
 ## Distribution och Git-status
 
-Det medföljande arbetsområdet innehåller ingen länkad Supabase-instans, inget Vercel-projekt, ingen Git-remote och inga demohemligheter. Därför finns det ingen påhittad produktions-URL, inga fungerande inloggningsuppgifter och inget påstått pushat repository i detta dokument.
+En lokal Git-historik har skapats med commit `9310c64` (`Build secure multi-tenant Mini ATS`). Arbetsområdet innehåller fortfarande ingen länkad Supabase-instans, inget Vercel-projekt, ingen Git-remote och inga demohemligheter. Därför finns det ingen påhittad produktions-URL, inga fungerande inloggningsuppgifter och inget påstått pushat repository i detta dokument.
 
 När ett Supabase-projekt är konfigurerat kan applikationen distribueras till Vercel genom att skapa/importera ett projekt, lägga in samma miljövariabler (serverhemligheter endast som servervariabler), sedan köra en produktionsbuild och distribuera. Kontrollera migration, bootstrap-admin och RLS med en riktig customer före produktionssättning.
 
@@ -167,4 +168,3 @@ Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial
 - E-postinbjudningar, återställning av lösenord och MFA hanteras via Supabase Auth-konfiguration och är inte ersatta av en egen lösenordsfunktion.
 - AI-sammanfattning kräver nätverksåtkomst och en giltig OpenAI-nyckel; appen är fortfarande användbar utan AI.
 - En etablerad produktionsmiljö bör kompletteras med loggning, backup-rutin, dataretention, personuppgiftsbiträdesavtal och regelbundna RLS-tester.
-
