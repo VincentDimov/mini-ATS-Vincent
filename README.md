@@ -168,3 +168,5 @@ Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial
 - E-postinbjudningar, återställning av lösenord och MFA hanteras via Supabase Auth-konfiguration och är inte ersatta av en egen lösenordsfunktion.
 - AI-sammanfattning kräver nätverksåtkomst och en giltig OpenAI-nyckel; appen är fortfarande användbar utan AI.
 - En etablerad produktionsmiljö bör kompletteras med loggning, backup-rutin, dataretention, personuppgiftsbiträdesavtal och regelbundna RLS-tester.
+# mini-ATS-Vincent
+# mini-ATS-Vincent
