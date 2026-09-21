@@ -14,7 +14,7 @@ Detta är en ny, säker databasbaseline. Den ska tillämpas på ett nytt Supabas
 - Kanban-flöde: **New → Screening → Interview → Offered → Rejected**. Att dra ett kort eller välja ny fas sparar ändringen direkt.
 - Filter på jobb och sökning på kandidatnamn eller e-post.
 - Privat PDF-CV-lagring och valfri AI-sammanfattning med sparat strukturerat resultat.
-- Fiktiv seeddata för en demoorganisation, två jobb och åtta kandidater.
+- Fiktiv seeddata för tre demoorganisationer, nio jobb och femton kandidater.
 
 ## Teknik och struktur
 
@@ -31,7 +31,7 @@ Viktiga delar i koden:
 - **src/lib/auth.ts**, route layouts och server actions kontrollerar aktuell användare och roll på servern. Proxy/UI är aldrig den enda behörighetskontrollen.
 - **src/app/actions.ts** innehåller jobb-, kandidat- och CV-operationer.
 - **src/app/admin/users/actions.ts** använder service-role-nyckeln först efter en server-side-adminkontroll för kontoprovisionering.
-- **supabase/migrations/20260920184847_ats_mvp.sql** är hela schemat, RLS-policies och Storage-policies.
+- **supabase/migrations/** innehåller schema, RLS-/Storage-policies samt serverrollens minsta nödvändiga databasbehörigheter.
 
 ## Lokal installation
 
@@ -73,8 +73,8 @@ npm run dev
 
 ## Databas, migration och demo-data
 
-1. Skapa ett **nytt** Supabase-projekt. Inaktivera öppna e-postregistreringar i Auth-inställningarna och sätt minst 12 tecken som lösenordspolicy; konton ska sedan provisioneras av en admin i appen.
-2. Kör hela innehållet i **supabase/migrations/20260920184847_ats_mvp.sql** i SQL Editor, eller länka CLI:t till projektet och kör migrationen:
+1. Skapa ett **nytt** Supabase-projekt. Inaktivera öppna e-postregistreringar, aktivera läckt-lösenordsskydd och sätt minst 12 tecken som lösenordspolicy i Auth-inställningarna; konton ska sedan provisioneras av en admin i appen.
+2. Kör alla filer i **supabase/migrations/** i tidsordning i SQL Editor, eller länka CLI:t till projektet och kör migrationerna:
 
    ~~~bash
    npx supabase login
@@ -82,7 +82,7 @@ npm run dev
    npx supabase db push
    ~~~
 
-3. Kör **supabase/seed.sql** i SQL Editor för den fiktiva demoorganisationen **Acme Recruitment**, två jobb och åtta kandidater. Seedfilen skapar medvetet inga Auth-användare och innehåller inga lösenord.
+3. Kör **supabase/seed.sql** i SQL Editor för **Northstar Cloud AB**, **Lumen Design AB** och **Fjord Logistics AB**: totalt nio jobb och femton kandidater. Seedfilen skapar medvetet inga Auth-användare och innehåller inga lösenord.
 4. Skapa en användare i Supabase Dashboard → Authentication → Users. Bekräfta e-postadressen, och kör sedan följande som en privilegierad SQL Editor-session (anpassa e-post och namn):
 
    ~~~sql
@@ -99,7 +99,7 @@ npm run dev
 
 5. Logga in som den administratören på **/login**. Admin kan därefter skapa customer- och adminanvändare i **Admin → Users**. När en customer skapas skapas eller väljs samtidigt en organisation.
 
-För en customer som ska se seeddata väljer du organisationen **Acme Recruitment** i adminformuläret. En customer-profil måste alltid ha ett **organization_id**; en admin-profil måste ha **organization_id = null**.
+För en customer som ska se seeddata väljer du en av de tre demoorganisationerna i adminformuläret. En customer-profil måste alltid ha ett **organization_id**; en admin-profil måste ha **organization_id = null**.
 
 ## Behörighet och tenant-isolering
 
@@ -146,7 +146,7 @@ Manuell acceptanscheck:
 
 ## Distribution och Git-status
 
-En lokal Git-historik har skapats med commit `9310c64` (`Build secure multi-tenant Mini ATS`). Arbetsområdet innehåller fortfarande ingen länkad Supabase-instans, inget Vercel-projekt, ingen Git-remote och inga demohemligheter. Därför finns det ingen påhittad produktions-URL, inga fungerande inloggningsuppgifter och inget påstått pushat repository i detta dokument.
+En lokal Git-historik har skapats med commit `9310c64` (`Build secure multi-tenant Mini ATS`). En Supabase-instans kan vara ansluten för demo- eller testdata, men arbetsområdet innehåller ingen Vercel-konfiguration eller Git-remote. Därför finns det ingen påhittad produktions-URL och inga inloggningsuppgifter i detta dokument.
 
 När ett Supabase-projekt är konfigurerat kan applikationen distribueras till Vercel genom att skapa/importera ett projekt, lägga in samma miljövariabler (serverhemligheter endast som servervariabler), sedan köra en produktionsbuild och distribuera. Kontrollera migration, bootstrap-admin och RLS med en riktig customer före produktionssättning.
 
@@ -168,5 +168,3 @@ Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial
 - E-postinbjudningar, återställning av lösenord och MFA hanteras via Supabase Auth-konfiguration och är inte ersatta av en egen lösenordsfunktion.
 - AI-sammanfattning kräver nätverksåtkomst och en giltig OpenAI-nyckel; appen är fortfarande användbar utan AI.
 - En etablerad produktionsmiljö bör kompletteras med loggning, backup-rutin, dataretention, personuppgiftsbiträdesavtal och regelbundna RLS-tester.
-# mini-ATS-Vincent
-# mini-ATS-Vincent
