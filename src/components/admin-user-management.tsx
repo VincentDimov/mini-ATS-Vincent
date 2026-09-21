@@ -259,7 +259,7 @@ export function AdminUserManagement({
       <div className="grid gap-3 sm:grid-cols-3">
         <Card size="sm">
           <CardContent className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+            <div className="rounded-lg bg-violet-500/10 p-2 text-violet-700">
               <Users className="size-4" aria-hidden="true" />
             </div>
             <div>
@@ -270,7 +270,7 @@ export function AdminUserManagement({
         </Card>
         <Card size="sm">
           <CardContent className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+            <div className="rounded-lg bg-sky-500/10 p-2 text-sky-700">
               <Building2 className="size-4" aria-hidden="true" />
             </div>
             <div>
@@ -281,7 +281,7 @@ export function AdminUserManagement({
         </Card>
         <Card size="sm">
           <CardContent className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+            <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-700">
               <ShieldCheck className="size-4" aria-hidden="true" />
             </div>
             <div>

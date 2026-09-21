@@ -168,3 +168,11 @@ Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial
 - E-postinbjudningar, återställning av lösenord och MFA hanteras via Supabase Auth-konfiguration och är inte ersatta av en egen lösenordsfunktion.
 - AI-sammanfattning kräver nätverksåtkomst och en giltig OpenAI-nyckel; appen är fortfarande användbar utan AI.
 - En etablerad produktionsmiljö bör kompletteras med loggning, backup-rutin, dataretention, personuppgiftsbiträdesavtal och regelbundna RLS-tester.
+
+
+| Konto | Lösenord |
+| --- | --- |
+| `admin@mini-ats.test` | `MiniATS!Admin-2026#A7` |
+| `northstar@mini-ats.test` | `MiniATS!North-2026#B4` |
+| `lumen@mini-ats.test` | `MiniATS!Lumen-2026#C9` |
+| `fjord@mini-ats.test` | `MiniATS!Fjord-2026#D2` |

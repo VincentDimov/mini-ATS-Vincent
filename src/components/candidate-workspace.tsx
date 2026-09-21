@@ -130,7 +130,7 @@ function CandidateWorkspaceContent({
 
   return (
     <section className="space-y-5">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 rounded-2xl border border-primary/10 bg-card/85 p-4 shadow-lg shadow-primary/5 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -145,7 +145,7 @@ function CandidateWorkspaceContent({
           value={jobFilter}
           onChange={(event) => setJobFilter(event.target.value)}
           aria-label="Filter candidates by job"
-          className="h-10 min-w-48 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+          className="h-10 min-w-48 rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <option value="all">All jobs</option>
           {jobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
@@ -169,14 +169,14 @@ function CandidateWorkspaceContent({
                     <section
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`min-h-52 min-w-64 rounded-2xl border p-3 transition-colors ${snapshot.isDraggingOver ? 'border-primary bg-primary/5' : 'border-border/60 bg-muted/30'}`}
+                      className={`min-h-52 min-w-64 rounded-2xl border p-3 shadow-sm transition-all ${snapshot.isDraggingOver ? 'border-primary bg-primary/10 ring-2 ring-primary/15' : meta.surfaceClassName}`}
                     >
                       <header className="mb-3 flex items-center justify-between px-1">
                         <div className="flex items-center gap-2">
                           <span className={`size-2 rounded-full ${meta.dotClassName}`} />
                           <h2 className="text-sm font-semibold">{meta.label}</h2>
                         </div>
-                        <span className="rounded-md bg-background px-1.5 py-0.5 text-xs text-muted-foreground">{stageCandidates.length}</span>
+                        <span className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${meta.countClassName}`}>{stageCandidates.length}</span>
                       </header>
                       <div className="space-y-2">
                         {stageCandidates.map((candidate, index) => (
@@ -185,7 +185,7 @@ function CandidateWorkspaceContent({
                               <article
                                 ref={dragProvided.innerRef}
                                 {...dragProvided.draggableProps}
-                                className={`rounded-xl border border-border/70 bg-card p-3 shadow-sm ${dragSnapshot.isDragging ? 'shadow-lg ring-1 ring-primary/40' : ''}`}
+                                className={`rounded-xl border border-white/80 bg-card/95 p-3 shadow-sm transition-shadow hover:shadow-md ${dragSnapshot.isDragging ? 'shadow-lg ring-1 ring-primary/40' : ''}`}
                               >
                                 <div className="flex items-start gap-2">
                                   <button
@@ -219,7 +219,7 @@ function CandidateWorkspaceContent({
                                   onChange={(event) => {
                                     if (isPipelineStage(event.target.value)) void moveCandidate(candidate.id, event.target.value)
                                   }}
-                                  className="mt-3 h-8 w-full rounded-md border border-input bg-background px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-input/30"
+                                  className="mt-3 h-8 w-full rounded-md border border-input bg-card px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   {PIPELINE_STAGES.map((item) => <option key={item} value={item}>{PIPELINE_META[item].label}</option>)}
                                 </select>

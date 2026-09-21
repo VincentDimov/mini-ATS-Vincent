@@ -225,11 +225,11 @@ export function CandidateProfile({ candidate, analysis, cvUrl }: CandidateProfil
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-        <div className="border-b border-border/60 bg-muted/30 px-5 py-4 sm:px-6">
+      <section className="overflow-hidden rounded-2xl border border-primary/10 bg-card shadow-lg shadow-primary/5">
+        <div className="border-b border-primary/10 bg-gradient-to-r from-violet-500/10 via-sky-500/5 to-emerald-500/10 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500/20 to-sky-500/20 text-sm font-semibold text-primary shadow-sm shadow-primary/10">
                 {getInitials(candidate.full_name)}
               </div>
               <div className="min-w-0">
@@ -289,7 +289,7 @@ export function CandidateProfile({ candidate, analysis, cvUrl }: CandidateProfil
             </Detail>
           </div>
 
-          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+          <div className="rounded-xl border border-sky-200/70 bg-gradient-to-br from-sky-50/80 to-violet-50/70 p-4">
             <p className="text-xs font-medium text-muted-foreground">Candidate record</p>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex items-center justify-between gap-3">
@@ -339,7 +339,7 @@ export function CandidateProfile({ candidate, analysis, cvUrl }: CandidateProfil
             </CardHeader>
             <CardContent className="space-y-5 py-5">
               <div className="flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm leading-6 text-foreground">
-                <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden="true" />
+                <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-700" aria-hidden="true" />
                 <p>
                   {analysis?.disclaimer || 'AI-assisted candidate summary only. Verify all information with a human reviewer.'}{' '}
                   This recruiter aid does not make a hiring decision, recommendation, ranking, or outcome.
@@ -467,7 +467,7 @@ export function CandidateProfile({ candidate, analysis, cvUrl }: CandidateProfil
                   </p>
                 ) : null}
                 {uploadSuccess ? (
-                  <p id="candidate-cv-feedback" className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200" role="status">
+                  <p id="candidate-cv-feedback" className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800" role="status">
                     {uploadSuccess}
                   </p>
                 ) : null}

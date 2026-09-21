@@ -32,9 +32,9 @@ export default async function CustomerDashboardPage() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <MetricCard label="Active jobs" value={activeJobs.length} icon={<BriefcaseBusiness className="size-5" />} detail={`${jobs.length - activeJobs.length} archived`} />
-        <MetricCard label="Candidates" value={candidates.length} icon={<UsersRound className="size-5" />} detail={`${candidatesByStage.interview + candidatesByStage.offered} in late stages`} />
-        <Card className="sm:col-span-2 xl:col-span-1">
+        <MetricCard label="Active jobs" value={activeJobs.length} icon={<BriefcaseBusiness className="size-5" />} detail={`${jobs.length - activeJobs.length} archived`} accentClassName="bg-violet-500/10 text-violet-700" />
+        <MetricCard label="Candidates" value={candidates.length} icon={<UsersRound className="size-5" />} detail={`${candidatesByStage.interview + candidatesByStage.offered} in late stages`} accentClassName="bg-sky-500/10 text-sky-700" />
+        <Card className="bg-gradient-to-br from-card via-card to-emerald-50/70 sm:col-span-2 xl:col-span-1">
           <CardHeader><CardTitle>Pipeline snapshot</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {PIPELINE_STAGES.map((stage) => (
@@ -90,16 +90,16 @@ export default async function CustomerDashboardPage() {
   )
 }
 
-function MetricCard({ label, value, detail, icon }: { label: string; value: number; detail: string; icon: React.ReactNode }) {
+function MetricCard({ label, value, detail, icon, accentClassName }: { label: string; value: number; detail: string; icon: React.ReactNode; accentClassName: string }) {
   return (
-    <Card>
+    <Card className="bg-card/90">
       <CardContent className="flex items-start justify-between gap-4 pt-4">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
           <p className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
           <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
         </div>
-        <span className="rounded-xl bg-primary/10 p-2.5 text-primary">{icon}</span>
+        <span className={`rounded-xl p-2.5 ${accentClassName}`}>{icon}</span>
       </CardContent>
     </Card>
   )

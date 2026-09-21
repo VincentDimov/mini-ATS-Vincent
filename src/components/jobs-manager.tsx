@@ -160,7 +160,7 @@ function JobsManagerContent({
 
   return (
     <section className="space-y-5">
-      <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border border-primary/10 bg-card/85 p-4 shadow-lg shadow-primary/5 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -186,17 +186,17 @@ function JobsManagerContent({
         </div>
       </div>
 
-      {message && <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">{message}</p>}
+      {message && <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700">{message}</p>}
       {error && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
 
       {visibleJobs.length ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {visibleJobs.map((job) => (
-            <article key={job.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+            <article key={job.id} className="rounded-2xl border border-primary/10 bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-lg hover:shadow-primary/10">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${job.status === 'active' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${job.status === 'active' ? 'bg-emerald-500/10 text-emerald-700' : 'bg-muted text-muted-foreground'}`}>
                       {job.status === 'active' ? 'Active' : 'Archived'}
                     </span>
                     <span className="text-xs text-muted-foreground">{candidateCounts[job.id] ?? 0} candidates</span>
@@ -204,7 +204,9 @@ function JobsManagerContent({
                   <h2 className="truncate text-lg font-semibold tracking-tight">{job.title}</h2>
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{job.description}</p>
                 </div>
-                <BriefcaseBusiness className="size-5 shrink-0 text-primary" />
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/15 to-sky-500/15 text-primary">
+                  <BriefcaseBusiness className="size-5" />
+                </span>
               </div>
               <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 {job.location && <span>{job.location}</span>}

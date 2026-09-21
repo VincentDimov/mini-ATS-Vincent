@@ -41,10 +41,10 @@ export default async function AdminDashboardPage() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Organizations" value={organizations.length} icon={<Building2 className="size-5" />} />
-        <Metric label="Users" value={profilesResponse.count ?? 0} icon={<UsersRound className="size-5" />} />
-        <Metric label="Jobs" value={jobs.length} icon={<BriefcaseBusiness className="size-5" />} />
-        <Metric label="Candidates" value={candidates.length} icon={<UsersRound className="size-5" />} />
+        <Metric label="Organizations" value={organizations.length} icon={<Building2 className="size-5" />} accentClassName="bg-violet-500/10 text-violet-700" />
+        <Metric label="Users" value={profilesResponse.count ?? 0} icon={<UsersRound className="size-5" />} accentClassName="bg-sky-500/10 text-sky-700" />
+        <Metric label="Jobs" value={jobs.length} icon={<BriefcaseBusiness className="size-5" />} accentClassName="bg-amber-500/10 text-amber-700" />
+        <Metric label="Candidates" value={candidates.length} icon={<UsersRound className="size-5" />} accentClassName="bg-emerald-500/10 text-emerald-700" />
       </div>
 
       <Card>
@@ -85,12 +85,12 @@ export default async function AdminDashboardPage() {
   )
 }
 
-function Metric({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function Metric({ label, value, icon, accentClassName }: { label: string; value: number; icon: React.ReactNode; accentClassName: string }) {
   return (
-    <Card>
+    <Card className="bg-card/90">
       <CardContent className="flex items-center justify-between pt-4">
         <div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold tabular-nums">{value}</p></div>
-        <span className="rounded-xl bg-primary/10 p-2.5 text-primary">{icon}</span>
+        <span className={`rounded-xl p-2.5 ${accentClassName}`}>{icon}</span>
       </CardContent>
     </Card>
   )

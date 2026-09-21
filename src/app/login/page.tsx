@@ -53,26 +53,29 @@ export default function LoginPage() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      <section className="relative hidden overflow-hidden bg-zinc-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 opacity-60 [background:radial-gradient(circle_at_20%_20%,rgba(99,102,241,.45),transparent_30%),radial-gradient(circle_at_80%_75%,rgba(20,184,166,.25),transparent_28%)]" />
+      <section className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-600 to-sky-600 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute inset-0 opacity-80 [background:radial-gradient(circle_at_20%_20%,rgba(255,255,255,.34),transparent_30%),radial-gradient(circle_at_80%_75%,rgba(45,212,191,.42),transparent_28%)]" />
+        <div className="absolute -bottom-24 -left-20 size-72 rounded-full bg-fuchsia-400/35 blur-3xl" />
         <div className="relative flex items-center gap-2 font-semibold">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-white text-zinc-950"><Sparkles className="size-4" /></span>
+          <span className="flex size-9 items-center justify-center rounded-xl bg-white/95 text-violet-700 shadow-lg shadow-indigo-950/20"><Sparkles className="size-4" /></span>
           Mini ATS
         </div>
         <div className="relative max-w-lg">
-          <p className="mb-4 text-sm font-medium text-indigo-200">RECRUITMENT, WITHOUT THE CLUTTER</p>
+          <p className="mb-4 text-sm font-medium tracking-wide text-white/80">RECRUITMENT, WITHOUT THE CLUTTER</p>
           <h1 className="text-4xl font-semibold tracking-tight">A focused workspace for every hiring conversation.</h1>
-          <p className="mt-5 text-base leading-7 text-zinc-300">Keep roles, candidates and interview context in one secure pipeline.</p>
+          <p className="mt-5 text-base leading-7 text-white/80">Keep roles, candidates and interview context in one secure pipeline.</p>
         </div>
       </section>
 
       <section className="relative flex items-center justify-center bg-background px-6 py-16 sm:px-10">
+        <div className="pointer-events-none absolute right-0 top-0 size-80 rounded-full bg-sky-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-0 size-72 rounded-full bg-violet-300/20 blur-3xl" />
         <Link href="/" className="absolute left-6 top-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground sm:left-10 sm:top-10">
           <ArrowLeft className="size-4" /> Back to home
         </Link>
-        <div className="w-full max-w-sm">
+        <div className="relative w-full max-w-sm rounded-3xl border border-primary/10 bg-card/90 p-6 shadow-xl shadow-primary/10 backdrop-blur sm:p-8">
           <div className="mb-8">
-            <div className="mb-5 flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground lg:hidden"><Sparkles className="size-4" /></div>
+            <div className="mb-5 flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-sky-500 text-primary-foreground shadow-lg shadow-primary/20 lg:hidden"><Sparkles className="size-4" /></div>
             <h1 className="text-2xl font-semibold tracking-tight">Sign in to your workspace</h1>
             <p className="mt-2 text-sm text-muted-foreground">Use the account created by your Mini ATS administrator.</p>
           </div>

@@ -57,8 +57,8 @@ function NavigationLinks({ items, mobile = false }: { items: NavigationItem[]; m
       href={href}
       className={
         mobile
-          ? 'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-          : 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          ? 'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          : 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
       }
     >
       <Icon className="size-4" aria-hidden="true" />
@@ -76,10 +76,10 @@ export function AppShell({ profile, organizationName, children }: AppShellProps)
   const roleLabel = isAdmin ? 'Administrator' : 'Customer workspace'
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-border bg-background lg:flex">
+    <div className="min-h-screen bg-muted/45">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar/90 shadow-xl shadow-primary/5 backdrop-blur-xl lg:flex">
         <div className="flex h-20 items-center gap-3 px-6">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 via-primary to-sky-500 text-primary-foreground shadow-lg shadow-primary/25">
             <Sparkles className="size-4" aria-hidden="true" />
           </div>
           <div className="min-w-0">
@@ -88,7 +88,7 @@ export function AppShell({ profile, organizationName, children }: AppShellProps)
           </div>
         </div>
 
-        <div className="mx-4 rounded-xl border border-border bg-muted/50 p-3">
+        <div className="mx-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-sky-500/10 p-3">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
             <Building2 className="size-3.5" aria-hidden="true" />
             Workspace
@@ -103,7 +103,7 @@ export function AppShell({ profile, organizationName, children }: AppShellProps)
           <NavigationLinks items={navigation} />
         </nav>
 
-        <div className="m-3 rounded-xl border border-border bg-muted/40 p-3">
+        <div className="m-3 rounded-2xl border border-primary/10 bg-card/75 p-3 shadow-sm shadow-primary/5">
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
               {initials}
@@ -117,10 +117,10 @@ export function AppShell({ profile, organizationName, children }: AppShellProps)
         </div>
       </aside>
 
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-20 border-b border-sidebar-border bg-sidebar/90 backdrop-blur-xl lg:hidden">
         <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
           <Link href={isAdmin ? '/admin' : '/dashboard'} className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-sky-500 text-primary-foreground shadow-sm shadow-primary/25">
               <Sparkles className="size-4" aria-hidden="true" />
             </div>
             <span className="truncate text-sm font-semibold">{workspaceName}</span>
