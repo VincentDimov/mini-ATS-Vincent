@@ -15,6 +15,13 @@ Detta är en ny, säker databasbaseline. Den ska tillämpas på ett nytt Supabas
 - Filter på jobb och sökning på kandidatnamn eller e-post.
 - Privat PDF-CV-lagring och valfri AI-sammanfattning med sparat strukturerat resultat.
 - Fiktiv seeddata för tre demoorganisationer, nio jobb och femton kandidater.
+- Företagsregister med redigering, globala jobb/kandidater och tydligt markerad adminvy för varje företag.
+- Användaradministration, explicit organisationsansvar, avstängning, jobbansvar och behörighetsgrupper.
+- Kandidatlistor, atomiska massuppdateringar, taggar, delade anteckningar och CSV-export med skydd mot kalkylbladsformler.
+- Intervjuplanering, kalenderexport, oföränderlig aktivitetslogg och uppföljningsinsikter.
+- Responsiv färgglad arbetsyta, ljus/mörk design, tangentbordssökning och lösenordsbyte.
+
+Se **[COMPARISON.md](COMPARISON.md)** för jämförelsen med Murshed och Regine, behörighetsmodellen och aktiveringsordningen för uppgraderingen.
 
 ## Teknik och struktur
 
@@ -30,7 +37,7 @@ Viktiga delar i koden:
 - **src/proxy.ts** uppdaterar Supabase-sessionen och gör tidiga inloggningsredirects.
 - **src/lib/auth.ts**, route layouts och server actions kontrollerar aktuell användare och roll på servern. Proxy/UI är aldrig den enda behörighetskontrollen.
 - **src/app/actions.ts** innehåller jobb-, kandidat- och CV-operationer.
-- **src/app/admin/users/actions.ts** använder service-role-nyckeln först efter en server-side-adminkontroll för kontoprovisionering.
+- **src/app/admin/users/actions.ts** använder service-role-nyckeln först efter serverkontroll av admin eller organisationsansvarig; ansvaret begränsas till rekryterare i det egna företaget.
 - **supabase/migrations/** innehåller schema, RLS-/Storage-policies samt serverrollens minsta nödvändiga databasbehörigheter.
 
 ## Lokal installation
@@ -108,13 +115,13 @@ All dataåtkomst avgörs av PostgreSQL RLS, inte av URL:er, lokala flaggor eller
 | Resurs | Customer | Admin |
 | --- | --- | --- |
 | Organisationer | Endast sin organisation | Alla organisationer |
-| Profiler | Endast sin egen profil | Alla profiler |
-| Jobb, kandidater och analyser | Endast rader i sin organisation | Alla organisationer |
-| Candidate-CVs | Endast CV:n vars sökväg och kandidat tillhör organisationen | Alla CV:n |
+| Profiler | Egen profil och teamets profiler; organisationsansvarig kan stänga av rekryterare | Alla profiler; explicit tilldelning av organisationsansvar |
+| Jobb, kandidater och analyser | Egen organisation; begränsade jobb kräver ansvar, skapande eller gruppmedlemskap | Alla organisationer |
+| Candidate-CVs | Privat fil för en tillgänglig kandidat i organisationen | Alla kandidaters privata CV:n |
 
 Migrationen använder en privat **private**-schema-yta med säkerhetsdefinierade hjälpfunktioner, explicita policyer per CRUD-operation, både **USING** och **WITH CHECK** för uppdateringar samt en trigger som hämtar kandidatens organisation från det valda jobbet. Därmed kan en klient inte flytta en kandidat till en annan organisation genom att manipulera organisationens ID.
 
-Rollen ligger i den RLS-skyddade **public.profiles**-tabellen. Auth-metadata används inte som behörighetskälla. Service-role-klienten finns endast på servern och används bara för den redan adminskyddade kontoskapandeåtgärden.
+Rollen ligger i den RLS-skyddade **public.profiles**-tabellen. Auth-metadata används inte som behörighetskälla. Service-role-klienten finns endast på servern. Kontoprovisionering kräver verifierad platform-admin eller organisationsansvarig (den senare får endast skapa rekryterare i sin egen organisation). Organisationsansvariga får redigera namn och radera rekryterarkonton i sitt eget företag, men inte admin- eller ansvarigkonton. Avstängda profiler förlorar dataåtkomst även med en ännu giltig session.
 
 ## AI-assisterad CV-sammanfattning
 
@@ -146,19 +153,15 @@ Manuell acceptanscheck:
 
 ## Distribution och Git-status
 
-En lokal Git-historik har skapats med commit `9310c64` (`Build secure multi-tenant Mini ATS`). En Supabase-instans kan vara ansluten för demo- eller testdata, men arbetsområdet innehåller ingen Vercel-konfiguration eller Git-remote. Därför finns det ingen påhittad produktions-URL och inga inloggningsuppgifter i detta dokument.
+GitHub-repository: **[VincentDimov/mini-ATS-Vincent](https://github.com/VincentDimov/mini-ATS-Vincent)**. Uppgraderingen levereras på **feature/workspace-upgrade**. Databasmigrationen måste godkännas och tillämpas före merge/driftsättning: gamla schemat saknar de nya tabeller och profilfält som appen använder. Befintlig molndatabas ändras inte av kodpushen.
 
 När ett Supabase-projekt är konfigurerat kan applikationen distribueras till Vercel genom att skapa/importera ett projekt, lägga in samma miljövariabler (serverhemligheter endast som servervariabler), sedan köra en produktionsbuild och distribuera. Kontrollera migration, bootstrap-admin och RLS med en riktig customer före produktionssättning.
 
-För att publicera koden till ett eget GitHub-repository:
+Uppgraderingsbranchen använder repositoryts befintliga remote:
 
 ~~~bash
-git init
-git add .
-git commit -m "Build secure mini ATS MVP"
-git branch -M main
-git remote add origin <din-git-remote>
-git push -u origin main
+git switch feature/workspace-upgrade
+git push -u mini-ATS-Vincent feature/workspace-upgrade
 ~~~
 
 Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial och verkliga CV-filer inte är spårade. Använd aldrig seeddata eller exempeladresser som verkliga kandidatdata.
@@ -170,9 +173,4 @@ Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial
 - En etablerad produktionsmiljö bör kompletteras med loggning, backup-rutin, dataretention, personuppgiftsbiträdesavtal och regelbundna RLS-tester.
 
 
-| Konto | Lösenord |
-| --- | --- |
-| `admin@mini-ats.test` | `MiniATS!Admin-2026#A7` |
-| `northstar@mini-ats.test` | `MiniATS!North-2026#B4` |
-| `lumen@mini-ats.test` | `MiniATS!Lumen-2026#C9` |
-| `fjord@mini-ats.test` | `MiniATS!Fjord-2026#D2` |
+Lösenord hör inte hemma i Git. Förvara dem i en lösenordshanterare och återställ förlorade lösenord via Supabase Auth. Tidigare publicerade demolösenord bör bytas innan kontona används med riktiga personuppgifter; borttagning ur den aktuella filen raderar inte tidigare Git-historik.

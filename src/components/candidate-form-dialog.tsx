@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { Loader2 } from "lucide-react"
-import { useEffect, useState, type FormEvent } from "react"
+import { Loader2 } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,82 +11,93 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { PIPELINE_META, PIPELINE_STAGES, isPipelineStage } from "@/lib/pipeline"
-import type { PipelineStage } from "@/lib/types"
+} from "@/components/ui/select";
+import {
+  PIPELINE_META,
+  PIPELINE_STAGES,
+  isPipelineStage,
+} from "@/lib/pipeline";
+import type { PipelineStage } from "@/lib/types";
 
 type JobOption = {
-  id: string
-  title: string
-  status: string
-}
+  id: string;
+  title: string;
+  status: string;
+};
 
 type EditableCandidate = {
-  id: string
-  job_id: string
-  full_name: string
-  email: string
-  phone?: string | null
-  linkedin_url?: string | null
-  current_title?: string | null
-  current_company?: string | null
-  notes?: string | null
-  pipeline_stage: PipelineStage
-}
+  id: string;
+  job_id: string;
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  linkedin_url?: string | null;
+  current_title?: string | null;
+  current_company?: string | null;
+  notes?: string | null;
+  pipeline_stage: PipelineStage;
+};
 
 export type CandidateFormValues = {
-  candidateId?: string
-  organizationId?: string
-  jobId: string
-  fullName: string
-  email: string
-  phone?: string
-  linkedinUrl?: string
-  currentTitle?: string
-  currentCompany?: string
-  notes?: string
-  pipelineStage: PipelineStage
-}
+  candidateId?: string;
+  organizationId?: string;
+  jobId: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  linkedinUrl?: string;
+  currentTitle?: string;
+  currentCompany?: string;
+  notes?: string;
+  pipelineStage: PipelineStage;
+};
 
 type CandidateFormDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  jobs: JobOption[]
-  candidate?: EditableCandidate
-  organizationId?: string
-  onSave: (values: CandidateFormValues) => Promise<{ ok: boolean; error?: string }>
-}
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  jobs: JobOption[];
+  candidate?: EditableCandidate;
+  organizationId?: string;
+  onSave: (
+    values: CandidateFormValues,
+  ) => Promise<{ ok: boolean; error?: string }>;
+};
 
 type FormState = {
-  jobId: string
-  fullName: string
-  email: string
-  phone: string
-  linkedinUrl: string
-  currentTitle: string
-  currentCompany: string
-  notes: string
-  pipelineStage: PipelineStage
-}
+  jobId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  linkedinUrl: string;
+  currentTitle: string;
+  currentCompany: string;
+  notes: string;
+  pipelineStage: PipelineStage;
+};
 
-type FieldErrors = Partial<Record<"jobId" | "fullName" | "email" | "linkedinUrl", string>>
+type FieldErrors = Partial<
+  Record<"jobId" | "fullName" | "email" | "linkedinUrl", string>
+>;
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function firstAvailableJobId(jobs: JobOption[]) {
-  return jobs.find((job) => job.status === "active")?.id ?? jobs[0]?.id ?? ""
+  return jobs.find((job) => job.status === "active")?.id ?? jobs[0]?.id ?? "";
 }
 
-function getInitialForm(candidate: EditableCandidate | undefined, jobs: JobOption[]): FormState {
+function getInitialForm(
+  candidate: EditableCandidate | undefined,
+  jobs: JobOption[],
+): FormState {
   return {
     jobId: candidate?.job_id ?? firstAvailableJobId(jobs),
     fullName: candidate?.full_name ?? "",
@@ -100,34 +111,45 @@ function getInitialForm(candidate: EditableCandidate | undefined, jobs: JobOptio
       candidate && isPipelineStage(candidate.pipeline_stage)
         ? candidate.pipeline_stage
         : "new",
-  }
+  };
 }
 
 function getLinkedInError(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
 
   try {
-    const url = new URL(trimmed)
-    const hostname = url.hostname.toLowerCase()
-    const isLinkedIn = hostname === "linkedin.com" || hostname.endsWith(".linkedin.com")
+    const url = new URL(trimmed);
+    const hostname = url.hostname.toLowerCase();
+    const isLinkedIn =
+      hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
 
-    if (url.protocol !== "https:" || !isLinkedIn || !url.pathname.startsWith("/in/")) {
-      return "Use a valid LinkedIn profile URL, such as https://www.linkedin.com/in/name."
+    if (
+      url.protocol !== "https:" ||
+      !isLinkedIn ||
+      !url.pathname.startsWith("/in/")
+    ) {
+      return "Use a valid LinkedIn profile URL, such as https://www.linkedin.com/in/name.";
     }
   } catch {
-    return "Use a valid LinkedIn profile URL, such as https://www.linkedin.com/in/name."
+    return "Use a valid LinkedIn profile URL, such as https://www.linkedin.com/in/name.";
   }
 
-  return undefined
+  return undefined;
 }
 
 function optionalValue(value: string) {
-  const trimmed = value.trim()
-  return trimmed || undefined
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
-export function CandidateFormDialog({
+export function CandidateFormDialog(props: CandidateFormDialogProps) {
+  // Each opening owns a fresh draft. Background refreshes never erase typed input.
+  if (!props.open) return null;
+  return <CandidateFormFields key={props.candidate?.id ?? "new"} {...props} />;
+}
+
+function CandidateFormFields({
   open,
   onOpenChange,
   jobs,
@@ -135,58 +157,56 @@ export function CandidateFormDialog({
   organizationId,
   onSave,
 }: CandidateFormDialogProps) {
-  const [form, setForm] = useState<FormState>(() => getInitialForm(candidate, jobs))
-  const [errors, setErrors] = useState<FieldErrors>({})
-  const [formError, setFormError] = useState<string>()
-  const [isSaving, setIsSaving] = useState(false)
+  const [form, setForm] = useState<FormState>(() =>
+    getInitialForm(candidate, jobs),
+  );
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string>();
+  const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (!open) return
-
-    setForm(getInitialForm(candidate, jobs))
-    setErrors({})
-    setFormError(undefined)
-  }, [candidate, jobs, open])
-
-  function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
-    setForm((current) => ({ ...current, [key]: value }))
+  function updateField<Key extends keyof FormState>(
+    key: Key,
+    value: FormState[Key],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (isSaving) return
+    if (isSaving) return;
     if (!nextOpen) {
-      setErrors({})
-      setFormError(undefined)
+      setErrors({});
+      setFormError(undefined);
     }
-    onOpenChange(nextOpen)
+    onOpenChange(nextOpen);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
-    const fullName = form.fullName.trim()
-    const email = form.email.trim().toLowerCase()
-    const linkedinError = getLinkedInError(form.linkedinUrl)
-    const nextErrors: FieldErrors = {}
+    const fullName = form.fullName.trim();
+    const email = form.email.trim().toLowerCase();
+    const linkedinError = getLinkedInError(form.linkedinUrl);
+    const nextErrors: FieldErrors = {};
 
     if (!form.jobId) {
       nextErrors.jobId = jobs.length
         ? "Choose the job this candidate is applying for."
-        : "Create a job before adding a candidate."
+        : "Create a job before adding a candidate.";
     }
-    if (!fullName) nextErrors.fullName = "Enter the candidate's full name."
-    if (!email || !EMAIL_PATTERN.test(email)) nextErrors.email = "Enter a valid email address."
-    if (linkedinError) nextErrors.linkedinUrl = linkedinError
+    if (!fullName) nextErrors.fullName = "Enter the candidate's full name.";
+    if (!email || !EMAIL_PATTERN.test(email))
+      nextErrors.email = "Enter a valid email address.";
+    if (linkedinError) nextErrors.linkedinUrl = linkedinError;
 
     if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors)
-      setFormError(undefined)
-      return
+      setErrors(nextErrors);
+      setFormError(undefined);
+      return;
     }
 
-    setErrors({})
-    setFormError(undefined)
-    setIsSaving(true)
+    setErrors({});
+    setFormError(undefined);
+    setIsSaving(true);
 
     try {
       const result = await onSave({
@@ -201,23 +221,29 @@ export function CandidateFormDialog({
         currentCompany: optionalValue(form.currentCompany),
         notes: optionalValue(form.notes),
         pipelineStage: form.pipelineStage,
-      })
+      });
 
       if (!result.ok) {
-        setFormError(result.error ?? "We couldn't save this candidate. Please try again.")
-        return
+        setFormError(
+          result.error ?? "We couldn't save this candidate. Please try again.",
+        );
+        return;
       }
 
-      onOpenChange(false)
+      onOpenChange(false);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "We couldn't save this candidate. Please try again.")
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't save this candidate. Please try again.",
+      );
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
   }
 
-  const isEditing = Boolean(candidate)
-  const noJobsAvailable = jobs.length === 0
+  const isEditing = Boolean(candidate);
+  const noJobsAvailable = jobs.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -227,7 +253,9 @@ export function CandidateFormDialog({
       >
         <form className="grid gap-5" onSubmit={handleSubmit} noValidate>
           <DialogHeader>
-            <DialogTitle>{isEditing ? "Edit candidate" : "Add candidate"}</DialogTitle>
+            <DialogTitle>
+              {isEditing ? "Edit candidate" : "Add candidate"}
+            </DialogTitle>
             <DialogDescription>
               {isEditing
                 ? "Update the candidate details and hiring stage."
@@ -243,8 +271,8 @@ export function CandidateFormDialog({
               <Select
                 value={form.jobId}
                 onValueChange={(jobId) => {
-                  updateField("jobId", jobId)
-                  setErrors((current) => ({ ...current, jobId: undefined }))
+                  updateField("jobId", jobId);
+                  setErrors((current) => ({ ...current, jobId: undefined }));
                 }}
                 disabled={noJobsAvailable || isSaving}
               >
@@ -252,23 +280,32 @@ export function CandidateFormDialog({
                   id="candidate-job"
                   className="w-full"
                   aria-invalid={Boolean(errors.jobId)}
-                  aria-describedby={errors.jobId ? "candidate-job-error" : undefined}
+                  aria-describedby={
+                    errors.jobId ? "candidate-job-error" : undefined
+                  }
                 >
                   <SelectValue placeholder="Choose a job" />
                 </SelectTrigger>
                 <SelectContent>
                   {jobs.map((job) => (
                     <SelectItem key={job.id} value={job.id}>
-                      {job.title}{job.status === "archived" ? " (archived)" : ""}
+                      {job.title}
+                      {job.status === "archived" ? " (archived)" : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {noJobsAvailable ? (
-                <p className="text-xs text-muted-foreground">Create a job before adding candidates.</p>
+                <p className="text-xs text-muted-foreground">
+                  Create a job before adding candidates.
+                </p>
               ) : null}
               {errors.jobId ? (
-                <p id="candidate-job-error" className="text-xs text-destructive" role="alert">
+                <p
+                  id="candidate-job-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
                   {errors.jobId}
                 </p>
               ) : null}
@@ -283,17 +320,26 @@ export function CandidateFormDialog({
                   id="candidate-full-name"
                   value={form.fullName}
                   onChange={(event) => {
-                    updateField("fullName", event.target.value)
-                    setErrors((current) => ({ ...current, fullName: undefined }))
+                    updateField("fullName", event.target.value);
+                    setErrors((current) => ({
+                      ...current,
+                      fullName: undefined,
+                    }));
                   }}
                   autoComplete="name"
                   aria-invalid={Boolean(errors.fullName)}
-                  aria-describedby={errors.fullName ? "candidate-full-name-error" : undefined}
+                  aria-describedby={
+                    errors.fullName ? "candidate-full-name-error" : undefined
+                  }
                   disabled={isSaving}
                   required
                 />
                 {errors.fullName ? (
-                  <p id="candidate-full-name-error" className="text-xs text-destructive" role="alert">
+                  <p
+                    id="candidate-full-name-error"
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
                     {errors.fullName}
                   </p>
                 ) : null}
@@ -308,17 +354,23 @@ export function CandidateFormDialog({
                   type="email"
                   value={form.email}
                   onChange={(event) => {
-                    updateField("email", event.target.value)
-                    setErrors((current) => ({ ...current, email: undefined }))
+                    updateField("email", event.target.value);
+                    setErrors((current) => ({ ...current, email: undefined }));
                   }}
                   autoComplete="email"
                   aria-invalid={Boolean(errors.email)}
-                  aria-describedby={errors.email ? "candidate-email-error" : undefined}
+                  aria-describedby={
+                    errors.email ? "candidate-email-error" : undefined
+                  }
                   disabled={isSaving}
                   required
                 />
                 {errors.email ? (
-                  <p id="candidate-email-error" className="text-xs text-destructive" role="alert">
+                  <p
+                    id="candidate-email-error"
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
                     {errors.email}
                   </p>
                 ) : null}
@@ -328,7 +380,10 @@ export function CandidateFormDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="candidate-phone">
-                  Phone <span className="font-normal text-muted-foreground">Optional</span>
+                  Phone{" "}
+                  <span className="font-normal text-muted-foreground">
+                    Optional
+                  </span>
                 </Label>
                 <Input
                   id="candidate-phone"
@@ -345,7 +400,8 @@ export function CandidateFormDialog({
                 <Select
                   value={form.pipelineStage}
                   onValueChange={(pipelineStage) => {
-                    if (isPipelineStage(pipelineStage)) updateField("pipelineStage", pipelineStage)
+                    if (isPipelineStage(pipelineStage))
+                      updateField("pipelineStage", pipelineStage);
                   }}
                   disabled={isSaving}
                 >
@@ -365,7 +421,10 @@ export function CandidateFormDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="candidate-linkedin">
-                LinkedIn profile <span className="font-normal text-muted-foreground">Optional</span>
+                LinkedIn profile{" "}
+                <span className="font-normal text-muted-foreground">
+                  Optional
+                </span>
               </Label>
               <Input
                 id="candidate-linkedin"
@@ -373,13 +432,19 @@ export function CandidateFormDialog({
                 inputMode="url"
                 value={form.linkedinUrl}
                 onChange={(event) => {
-                  updateField("linkedinUrl", event.target.value)
-                  setErrors((current) => ({ ...current, linkedinUrl: undefined }))
+                  updateField("linkedinUrl", event.target.value);
+                  setErrors((current) => ({
+                    ...current,
+                    linkedinUrl: undefined,
+                  }));
                 }}
                 onBlur={() => {
-                  const linkedinError = getLinkedInError(form.linkedinUrl)
+                  const linkedinError = getLinkedInError(form.linkedinUrl);
                   if (linkedinError) {
-                    setErrors((current) => ({ ...current, linkedinUrl: linkedinError }))
+                    setErrors((current) => ({
+                      ...current,
+                      linkedinUrl: linkedinError,
+                    }));
                   }
                 }}
                 autoComplete="url"
@@ -392,11 +457,19 @@ export function CandidateFormDialog({
                 }
                 disabled={isSaving}
               />
-              <p id="candidate-linkedin-hint" className="text-xs text-muted-foreground">
-                Use a public profile URL beginning with https://www.linkedin.com/in/.
+              <p
+                id="candidate-linkedin-hint"
+                className="text-xs text-muted-foreground"
+              >
+                Use a public profile URL beginning with
+                https://www.linkedin.com/in/.
               </p>
               {errors.linkedinUrl ? (
-                <p id="candidate-linkedin-error" className="text-xs text-destructive" role="alert">
+                <p
+                  id="candidate-linkedin-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
                   {errors.linkedinUrl}
                 </p>
               ) : null}
@@ -405,12 +478,17 @@ export function CandidateFormDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="candidate-current-title">
-                  Current title <span className="font-normal text-muted-foreground">Optional</span>
+                  Current title{" "}
+                  <span className="font-normal text-muted-foreground">
+                    Optional
+                  </span>
                 </Label>
                 <Input
                   id="candidate-current-title"
                   value={form.currentTitle}
-                  onChange={(event) => updateField("currentTitle", event.target.value)}
+                  onChange={(event) =>
+                    updateField("currentTitle", event.target.value)
+                  }
                   autoComplete="organization-title"
                   disabled={isSaving}
                 />
@@ -418,12 +496,17 @@ export function CandidateFormDialog({
 
               <div className="grid gap-2">
                 <Label htmlFor="candidate-current-company">
-                  Current company <span className="font-normal text-muted-foreground">Optional</span>
+                  Current company{" "}
+                  <span className="font-normal text-muted-foreground">
+                    Optional
+                  </span>
                 </Label>
                 <Input
                   id="candidate-current-company"
                   value={form.currentCompany}
-                  onChange={(event) => updateField("currentCompany", event.target.value)}
+                  onChange={(event) =>
+                    updateField("currentCompany", event.target.value)
+                  }
                   autoComplete="organization"
                   disabled={isSaving}
                 />
@@ -432,7 +515,10 @@ export function CandidateFormDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="candidate-notes">
-                Notes <span className="font-normal text-muted-foreground">Optional</span>
+                Notes{" "}
+                <span className="font-normal text-muted-foreground">
+                  Optional
+                </span>
               </Label>
               <textarea
                 id="candidate-notes"
@@ -446,7 +532,10 @@ export function CandidateFormDialog({
           </div>
 
           {formError ? (
-            <p className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+            <p
+              className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
               {formError}
             </p>
           ) : null}
@@ -456,16 +545,27 @@ export function CandidateFormDialog({
           </p>
 
           <DialogFooter className="mt-1">
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSaving || noJobsAvailable}>
-              {isSaving ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-              {isSaving ? "Saving..." : isEditing ? "Save changes" : "Add candidate"}
+              {isSaving ? (
+                <Loader2 className="animate-spin" aria-hidden="true" />
+              ) : null}
+              {isSaving
+                ? "Saving..."
+                : isEditing
+                  ? "Save changes"
+                  : "Add candidate"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

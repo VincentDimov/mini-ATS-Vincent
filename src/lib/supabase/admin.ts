@@ -1,11 +1,13 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from "@supabase/supabase-js";
 
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error('User provisioning is not configured. Set SUPABASE_SERVICE_ROLE_KEY on the server.')
+    throw new Error(
+      "User provisioning is not configured. Set SUPABASE_SERVICE_ROLE_KEY on the server.",
+    );
   }
 
   return createClient(url, serviceRoleKey, {
@@ -14,5 +16,5 @@ export function createAdminClient() {
       persistSession: false,
       detectSessionInUrl: false,
     },
-  })
+  });
 }
