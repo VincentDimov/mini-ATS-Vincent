@@ -9,7 +9,8 @@ import { InsightsWorkspace } from "@/components/insights-workspace";
 import { SearchWorkspace } from "@/components/search-workspace";
 import { SettingsWorkspace } from "@/components/settings-workspace";
 import { JobsManager } from "@/components/jobs-manager";
-import { CandidateWorkspace } from "@/components/candidate-workspace";
+import { PaginatedCandidates } from "@/components/paginated-candidates";
+import type { CandidateQuery } from "@/lib/candidate-search";
 import { PageHeading } from "@/components/workspace-ui";
 export const dynamic = "force-dynamic";
 export default async function AdminToolPage({
@@ -17,7 +18,7 @@ export default async function AdminToolPage({
   searchParams,
 }: {
   params: Promise<{ tool: string }>;
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<CandidateQuery>;
 }) {
   const { tool } = await params;
   if (
@@ -95,7 +96,7 @@ export default async function AdminToolPage({
             title="All candidates"
             description="Explore candidates across your customer workspaces. Select a role when adding a candidate."
           />
-          <CandidateWorkspace initialCandidates={candidates} jobs={jobs} />
+          <PaginatedCandidates supabase={supabase} query={query} jobs={jobs} />
         </>
       )}
     </div>

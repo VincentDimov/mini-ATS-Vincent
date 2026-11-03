@@ -50,7 +50,7 @@ export default async function CandidateProfilePage({
       supabase
         .from("candidate_analyses")
         .select(
-          "id, candidate_id, organization_id, summary, strengths, potential_gaps, matching_skills, interview_questions, model, disclaimer, created_at, updated_at",
+          "id, candidate_id, organization_id, summary, strengths, potential_gaps, matching_skills, interview_questions, model, disclaimer, stale, created_at, updated_at",
         )
         .eq("candidate_id", candidate.id)
         .maybeSingle(),
@@ -91,14 +91,6 @@ export default async function CandidateProfilePage({
       } satisfies CandidateAnalysis)
     : null;
 
-  let cvUrl: string | null = null;
-  if (candidate.cv_path) {
-    const { data: signedUrlData } = await supabase.storage
-      .from("candidate-cvs")
-      .createSignedUrl(candidate.cv_path, 60);
-    cvUrl = signedUrlData?.signedUrl ?? null;
-  }
-
   const backHref =
     profile.role === "admin"
       ? `/admin/organizations/${candidate.organization_id}`
@@ -127,7 +119,7 @@ export default async function CandidateProfilePage({
       <CandidateProfile
         candidate={candidateWithJob}
         analysis={analysis}
-        cvUrl={cvUrl}
+        canManageRetention={profile.role === "admin" || profile.is_org_manager}
       />
       <CandidateCollaboration
         candidateId={id}

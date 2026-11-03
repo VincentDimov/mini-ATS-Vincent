@@ -65,6 +65,7 @@ export interface Candidate {
   cv_path: string | null;
   cv_filename: string | null;
   cv_uploaded_at: string | null;
+  retain_until: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +75,7 @@ export interface CandidateWithJob extends Candidate {
 }
 
 export interface CandidateAnalysis {
+  stale: boolean;
   id: string;
   candidate_id: string;
   organization_id: string;

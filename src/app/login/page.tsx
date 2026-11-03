@@ -147,6 +147,7 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+          <Link href="/forgot-password" className="mt-5 block text-sm text-primary underline">Forgot password or expired invitation?</Link>
         </div>
       </section>
     </main>

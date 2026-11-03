@@ -1,7 +1,8 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CandidateWorkspace } from "@/components/candidate-workspace";
+import { PaginatedCandidates } from "@/components/paginated-candidates";
+import type { CandidateQuery } from "@/lib/candidate-search";
 import { JobsManager } from "@/components/jobs-manager";
 import { WorkspaceToolView } from "@/components/workspace-tool-view";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export default async function AdminOrganizationPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<CandidateQuery & { view?: string }>;
 }) {
   const { id } = await params,
     { view = "jobs" } = await searchParams;
@@ -89,8 +90,9 @@ export default async function AdminOrganizationPage({
           organizationId={id}
         />
       ) : view === "candidates" ? (
-        <CandidateWorkspace
-          initialCandidates={candidates}
+        <PaginatedCandidates
+          supabase={supabase}
+          query={await searchParams}
           jobs={jobs}
           organizationId={id}
         />

@@ -1,12 +1,13 @@
-import { CandidateWorkspace } from "@/components/candidate-workspace";
+import { PaginatedCandidates } from "@/components/paginated-candidates";
+import type { CandidateQuery } from "@/lib/candidate-search";
 import { requireCustomer } from "@/lib/auth";
 import { getWorkspaceData } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function CandidatesPage() {
+export default async function CandidatesPage({ searchParams }: { searchParams: Promise<CandidateQuery> }) {
   const { profile, supabase } = await requireCustomer();
-  const { jobs, candidates } = await getWorkspaceData(
+  const { jobs } = await getWorkspaceData(
     supabase,
     profile.organization_id!,
   );
@@ -24,7 +25,7 @@ export default async function CandidatesPage() {
         </p>
       </div>
       <div className="pt-4">
-        <CandidateWorkspace initialCandidates={candidates} jobs={jobs} />
+        <PaginatedCandidates supabase={supabase} query={await searchParams} jobs={jobs} organizationId={profile.organization_id!} />
       </div>
     </div>
   );

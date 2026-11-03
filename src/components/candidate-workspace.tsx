@@ -60,12 +60,16 @@ export function CandidateWorkspace({
   initialCandidates,
   jobs,
   organizationId,
+  initialPreferences,
+  pagination,
 }: {
   initialCandidates: CandidateWithJob[];
   jobs: Job[];
   organizationId?: string;
+  initialPreferences?: ViewPreferences;
+  pagination?: { page: number; total: number };
 }) {
-  const [preferences, setPreferences] = useState<ViewPreferences>({
+  const [preferences, setPreferences] = useState<ViewPreferences>(initialPreferences ?? {
     search: "",
     jobFilter: "all",
     view: "board",
@@ -90,6 +94,7 @@ export function CandidateWorkspace({
       organizationId={organizationId}
       preferences={preferences}
       setPreferences={setPreferences}
+      pagination={pagination}
     />
   );
 }
@@ -100,25 +105,35 @@ function CandidateWorkspaceContent({
   organizationId,
   preferences,
   setPreferences,
+  pagination,
 }: {
   initialCandidates: CandidateWithJob[];
   jobs: Job[];
   organizationId?: string;
   preferences: ViewPreferences;
   setPreferences: Dispatch<SetStateAction<ViewPreferences>>;
+  pagination?: { page: number; total: number };
 }) {
   const router = useRouter();
   const [candidates, setCandidates] = useState(initialCandidates);
   const { search, jobFilter, view, stageFilter, sort } = preferences;
+  function navigateFilters(values: ViewPreferences, page = 1) {
+    if (!pagination) return;
+    const params = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries({ q: values.search, job: values.jobFilter, stage: values.stageFilter, sort: values.sort, pipelineView: values.view, page: String(page) })) {
+      if (!value || value === "all") params.delete(key); else params.set(key, value);
+    }
+    router.replace(`${window.location.pathname}?${params}`, { scroll: false });
+  }
   const setSearch = (search: string) =>
     setPreferences((p) => ({ ...p, search }));
   const setJobFilter = (jobFilter: string) =>
-    setPreferences((p) => ({ ...p, jobFilter }));
+    { setPreferences((p) => ({ ...p, jobFilter })); navigateFilters({ ...preferences, jobFilter }); };
   const setView = (view: "board" | "list") =>
-    setPreferences((p) => ({ ...p, view }));
+    { setPreferences((p) => ({ ...p, view })); navigateFilters({ ...preferences, view }, pagination?.page); };
   const setStageFilter = (stageFilter: string) =>
-    setPreferences((p) => ({ ...p, stageFilter }));
-  const setSort = (sort: string) => setPreferences((p) => ({ ...p, sort }));
+    { setPreferences((p) => ({ ...p, stageFilter })); navigateFilters({ ...preferences, stageFilter }); };
+  const setSort = (sort: string) => { setPreferences((p) => ({ ...p, sort })); navigateFilters({ ...preferences, sort }); };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<
     CandidateWithJob | undefined
@@ -234,8 +249,11 @@ function CandidateWorkspaceContent({
             className="h-10 pl-9"
             placeholder="Search by name, email or label"
             aria-label="Search candidates"
+            maxLength={160}
+            onKeyDown={(event) => { if (event.key === "Enter") navigateFilters(preferences); }}
           />
         </div>
+        {pagination ? <Button variant="outline" onClick={() => navigateFilters(preferences)}>Search all candidates</Button> : null}
         <select
           value={jobFilter}
           onChange={(event) => setJobFilter(event.target.value)}
@@ -337,6 +355,7 @@ function CandidateWorkspaceContent({
         </div>
       </div>
       <Feedback value={action.feedback} />
+      {pagination ? <nav aria-label="Candidate pagination" className="flex flex-wrap items-center gap-3 text-sm"><Button variant="outline" disabled={pagination.page <= 1} onClick={() => navigateFilters(preferences, pagination.page - 1)}>Previous page</Button><span role="status">Page {pagination.page} · {pagination.total} matches · showing up to 50. Board, bulk actions and CSV cover this page only.</span><Button variant="outline" disabled={pagination.page * 50 >= pagination.total || pagination.page >= 200} onClick={() => navigateFilters(preferences, pagination.page + 1)}>Next page</Button></nav> : null}
       {view === "list" ? (
         <div className="space-y-3">
           {selected.length ? (

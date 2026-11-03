@@ -10,9 +10,9 @@ export function useWorkspaceAction() {
     ok: boolean;
     message: string;
   } | null>(null);
-  function execute(
-    operation: () => Promise<ActionResult<unknown>>,
-    onSuccess?: () => void,
+  function execute<T>(
+    operation: () => Promise<ActionResult<T>>,
+    onSuccess?: (result: Extract<ActionResult<T>, { ok: true }>) => void,
   ) {
     setFeedback(null);
     startTransition(async () => {
@@ -23,7 +23,7 @@ export function useWorkspaceAction() {
           message: result.ok ? (result.message ?? "Saved.") : result.error,
         });
         if (result.ok) {
-          onSuccess?.();
+          onSuccess?.(result);
           router.refresh();
         }
       } catch (error) {

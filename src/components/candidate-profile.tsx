@@ -28,7 +28,9 @@ import {
   updateCandidate,
   uploadAndAnalyzeCandidateCv,
   deleteCandidate,
+  retryCandidateAnalysis,
 } from "@/app/actions";
+import { downloadCandidateCv, setCandidateRetention } from "@/app/cv-actions";
 import {
   CandidateFormDialog,
   type CandidateFormValues,
@@ -62,12 +64,13 @@ type CandidateProfileAnalysis = Pick<
   | "disclaimer"
   | "model"
   | "updated_at"
+  | "stale"
 >;
 
 type CandidateProfileProps = {
   candidate: CandidateProfileCandidate;
   analysis: CandidateProfileAnalysis | null;
-  cvUrl?: string | null;
+  canManageRetention?: boolean;
 };
 
 function formatDate(value: string | null | undefined) {
@@ -168,10 +171,12 @@ function RecruiterList({
 export function CandidateProfile({
   candidate,
   analysis,
-  cvUrl,
+  canManageRetention,
 }: CandidateProfileProps) {
   const router = useRouter();
   const removal = useWorkspaceAction();
+  const cvAction = useWorkspaceAction();
+  const [retention, setRetention] = useState(candidate.retain_until?.slice(0, 10) ?? "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -412,6 +417,7 @@ export function CandidateProfile({
         ) : null}
       </section>
       <Feedback value={removal.feedback} />
+      <Feedback value={cvAction.feedback} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section className="space-y-6">
@@ -439,6 +445,8 @@ export function CandidateProfile({
               </div>
             </CardHeader>
             <CardContent className="space-y-5 py-5">
+              {analysis?.stale ? <p role="status" className="rounded-lg border border-amber-500/30 p-3 text-sm">Outdated analysis — CV or role context changed, or this is an unversioned legacy result. Do not use it for current evaluation.</p> : null}
+              {candidate.cv_path ? <Button variant="outline" disabled={cvAction.pending || isUploading} onClick={() => cvAction.execute(() => retryCandidateAnalysis(candidate.id), () => router.refresh())}>{cvAction.pending ? "Analyzing…" : "Retry analysis"}</Button> : null}
               <div className="flex gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-sm leading-6 text-foreground">
                 <CircleAlert
                   className="mt-0.5 size-4 shrink-0 text-amber-700"
@@ -533,7 +541,7 @@ export function CandidateProfile({
               <CardDescription>PDF only, up to 5 MB.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 py-5">
-              {cvUrl ? (
+              {candidate.cv_path ? (
                 <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <FileText
@@ -548,19 +556,13 @@ export function CandidateProfile({
                     Secure, time-limited download link
                   </p>
                   <Button
-                    asChild
                     variant="outline"
                     size="sm"
                     className="mt-3 w-full"
+                    disabled={cvAction.pending}
+                    onClick={() => cvAction.execute(() => downloadCandidateCv(candidate.id), (result) => { if (result.data) window.location.assign(result.data.url); })}
                   >
-                    <a
-                      href={cvUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                    >
                       <Download aria-hidden="true" /> Download CV
-                    </a>
                   </Button>
                 </div>
               ) : candidate.cv_filename ? (
@@ -655,6 +657,7 @@ export function CandidateProfile({
               </p>
             </CardContent>
           </Card>
+          {canManageRetention ? <Card><CardHeader><CardTitle>Data retention</CardTitle><CardDescription>Optional scheduled deletion at 00:00 UTC. Choose a date according to your organization&apos;s policy; no default legal period is assumed.</CardDescription></CardHeader><CardContent className="space-y-3"><label htmlFor="retention-date">Deletion date (UTC)</label><Input id="retention-date" type="date" value={retention} onChange={event => setRetention(event.target.value)} /><Button disabled={cvAction.pending} onClick={() => cvAction.execute(() => setCandidateRetention(candidate.id, retention || null), () => router.refresh())}>Save retention</Button></CardContent></Card> : null}
         </aside>
       </div>
 

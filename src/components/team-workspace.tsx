@@ -8,7 +8,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { createManagedUser } from "@/app/admin/users/actions";
+import { createManagedUser, inviteRecruiter } from "@/app/admin/users/actions";
 import {
   assignJob,
   setMemberActive,
@@ -57,6 +57,7 @@ export function TeamWorkspace({
     fullName: "",
     password: "",
   });
+  const [sendInvite, setSendInvite] = useState(false);
   const members = profiles.filter((p) =>
     [p.full_name, p.email]
       .join(" ")
@@ -316,7 +317,7 @@ export function TeamWorkspace({
                 () =>
                   draft.id
                     ? renameTeamMember(draft.id, organizationId, draft.fullName)
-                    : createManagedUser({
+                    : sendInvite ? inviteRecruiter({ email: draft.email, fullName: draft.fullName, organizationId }) : createManagedUser({
                         ...draft,
                         role: "customer",
                         organizationId,
@@ -347,12 +348,13 @@ export function TeamWorkspace({
                 onChange={(e) => setDraft({ ...draft, email: e.target.value })}
               />
             </div>
-            {!draft.id ? (
+            {!draft.id ? <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sendInvite} onChange={event => setSendInvite(event.target.checked)} />Send email invitation (recruiter chooses password)</label> : null}
+            {!draft.id && !sendInvite ? (
               <div className="space-y-2">
                 <Label htmlFor="member-password">Initial password</Label>
                 <Input
                   id="member-password"
-                  type="text"
+                  type="password"
                   minLength={12}
                   autoComplete="new-password"
                   required
@@ -366,7 +368,7 @@ export function TeamWorkspace({
             <Feedback value={action.feedback} />
             <Button type="submit" disabled={action.pending}>
               <Busy pending={action.pending} />
-              {draft.id ? "Save teammate" : "Create account"}
+              {draft.id ? "Save teammate" : sendInvite ? "Send invitation" : "Create account"}
             </Button>
           </form>
         </DialogContent>
