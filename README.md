@@ -2,9 +2,6 @@
 
 Ett komplett, multi-tenant Applicant Tracking System (ATS) för mindre rekryteringsteam. Applikationen har två roller: **admin** kan administrera organisationer och användare samt se alla organisationers data; **customer** arbetar enbart i sin egen organisation.
 
-Detta är en ny, säker databasbaseline. Den ska tillämpas på ett nytt Supabase-projekt, inte ovanpå ett äldre schema med okända policies eller data.
-
-Produktionshärdningen har dokumenterade, additiva uppgraderingar för befintlig baseline. Läs [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) för audit och verifieringsstatus samt [DEPLOYMENT.md](DEPLOYMENT.md) före migration/driftsättning. Kör inte om baseline eller seeddata mot produktion.
 
 ## Funktioner
 
@@ -23,7 +20,6 @@ Produktionshärdningen har dokumenterade, additiva uppgraderingar för befintlig
 - Intervjuplanering, kalenderexport, oföränderlig aktivitetslogg och uppföljningsinsikter.
 - Responsiv färgglad arbetsyta, ljus/mörk design, tangentbordssökning och lösenordsbyte.
 
-Se **[COMPARISON.md](COMPARISON.md)** för jämförelsen med Murshed och Regine, behörighetsmodellen och aktiveringsordningen för uppgraderingen.
 
 ## Teknik och struktur
 
