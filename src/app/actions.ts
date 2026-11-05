@@ -139,7 +139,9 @@ export async function updateJob(
         notes: nullable(value.notes),
         salary_range: nullable(value.salaryRange),
       })
-      .eq("id", jobId).select("id").single();
+      .eq("id", jobId)
+      .select("id")
+      .single();
 
     if (error) throw new Error("The job could not be updated.");
     revalidateWorkspace(job.organization_id);
@@ -159,11 +161,15 @@ export async function setJobStatus(
   const context = await requireProfile();
 
   try {
+    if (status !== "active" && status !== "archived")
+      throw new Error("Choose a valid job status.");
     const job = await getAccessibleJob(context.supabase, jobId);
     const { error } = await context.supabase
       .from("jobs")
       .update({ status })
-      .eq("id", jobId).select("id").single();
+      .eq("id", jobId)
+      .select("id")
+      .single();
     if (error) throw new Error("The job status could not be changed.");
     revalidateWorkspace(job.organization_id);
     return {
@@ -186,7 +192,9 @@ export async function deleteJob(jobId: string): Promise<ActionResult> {
     const { error } = await context.supabase
       .from("jobs")
       .delete()
-      .eq("id", jobId).select("id").single();
+      .eq("id", jobId)
+      .select("id")
+      .single();
     if (error) throw new Error("The job could not be deleted.");
     revalidateWorkspace(job.organization_id);
     return { ok: true, message: "Job and its candidates were deleted." };
@@ -297,7 +305,9 @@ export async function updateCandidate(
         notes: nullable(value.notes),
         pipeline_stage: value.pipelineStage,
       })
-      .eq("id", candidateId).select("id").single();
+      .eq("id", candidateId)
+      .select("id")
+      .single();
 
     if (error) {
       if (error.code === "23505")
@@ -367,7 +377,9 @@ export async function deleteCandidate(
     const { error } = await context.supabase
       .from("candidates")
       .delete()
-      .eq("id", candidateId).select("id").single();
+      .eq("id", candidateId)
+      .select("id")
+      .single();
     if (error) throw new Error("The candidate could not be deleted.");
     revalidateWorkspace(data.organization_id as string);
     return { ok: true, message: "Candidate deleted." };
@@ -379,69 +391,173 @@ export async function deleteCandidate(
   }
 }
 
-type AnalysisContext = { token: string; path: string; jobId: string; version: number; title: string; description: string };
+type AnalysisContext = {
+  token: string;
+  path: string;
+  jobId: string;
+  version: number;
+  title: string;
+  description: string;
+};
 
-async function analyzeSavedCv(context: Awaited<ReturnType<typeof requireProfile>>, candidateId: string): Promise<ActionResult> {
+async function analyzeSavedCv(
+  context: Awaited<ReturnType<typeof requireProfile>>,
+  candidateId: string,
+): Promise<ActionResult> {
+  if (!process.env.OPENAI_API_KEY)
+    return {
+      ok: true,
+      aiUnavailable: true,
+      message: "CV saved. AI analysis is not configured.",
+    };
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("begin_analysis", { actor_id: context.userId, cid: candidateId });
+  const { data, error } = await admin.rpc("begin_analysis", {
+    actor_id: context.userId,
+    cid: candidateId,
+  });
   if (error || !data) throw new Error("Candidate or CV is unavailable.");
   const snapshot = data as AnalysisContext;
   // Read the committed object, not a stale file supplied by a concurrent request.
-  const { data: cv, error: downloadError } = await admin.storage.from("candidate-cvs").download(snapshot.path);
-  if (downloadError || !cv) throw new Error("The saved CV could not be read. Retry analysis later.");
-  const result = await requestOpenAiAnalysis(new Uint8Array(await cv.arrayBuffer()), snapshot);
-  if (!result.configured) return { ok: true, aiUnavailable: true, message: "CV saved. AI analysis is not configured." };
+  const { data: cv, error: downloadError } = await admin.storage
+    .from("candidate-cvs")
+    .download(snapshot.path);
+  if (downloadError || !cv)
+    throw new Error("The saved CV could not be read. Retry analysis later.");
+  const result = await requestOpenAiAnalysis(
+    new Uint8Array(await cv.arrayBuffer()),
+    snapshot,
+  );
+  if (!result.configured)
+    return {
+      ok: true,
+      aiUnavailable: true,
+      message: "CV saved. AI analysis is not configured.",
+    };
   const saved = await admin.rpc("save_analysis", {
-    actor_id: context.userId, cid: candidateId, token: snapshot.token,
-    expected_path: snapshot.path, expected_job: snapshot.jobId, expected_version: snapshot.version,
-    payload: result.analysis, model_name: result.model,
+    actor_id: context.userId,
+    cid: candidateId,
+    token: snapshot.token,
+    expected_path: snapshot.path,
+    expected_job: snapshot.jobId,
+    expected_version: snapshot.version,
+    payload: result.analysis,
+    model_name: result.model,
   });
-  if (saved.error) throw new Error("CV saved, but analysis could not be saved. Retry analysis later.");
-  if (!saved.data) return { ok: true, aiUnavailable: true, message: "CV or role changed during analysis. Outdated result was discarded; retry for the current context." };
-  return { ok: true, message: "AI-assisted summary saved for the current CV and role." };
+  if (saved.error)
+    throw new Error(
+      "CV saved, but analysis could not be saved. Retry analysis later.",
+    );
+  if (!saved.data)
+    return {
+      ok: true,
+      aiUnavailable: true,
+      message:
+        "CV or role changed during analysis. Outdated result was discarded; retry for the current context.",
+    };
+  return {
+    ok: true,
+    message: "AI-assisted summary saved for the current CV and role.",
+  };
 }
 
-export async function retryCandidateAnalysis(candidateId: string): Promise<ActionResult> {
+export async function retryCandidateAnalysis(
+  candidateId: string,
+): Promise<ActionResult> {
   const context = await requireProfile();
   try {
     const result = await analyzeSavedCv(context, candidateId);
     revalidatePath(`/candidates/${candidateId}`);
     return result;
   } catch {
-    return { ok: false, error: "Analysis unavailable. Your CV is saved; please retry later." };
+    return {
+      ok: false,
+      error: "Analysis unavailable. Your CV is saved; please retry later.",
+    };
   }
 }
 
-export async function uploadAndAnalyzeCandidateCv(formData: FormData): Promise<ActionResult> {
+export async function uploadAndAnalyzeCandidateCv(
+  formData: FormData,
+): Promise<ActionResult> {
   const context = await requireProfile();
   let committed = false;
   let candidateId = "";
   try {
-    const id = formData.get("candidateId"), file = formData.get("file");
-    if (typeof id !== "string" || !/^[a-f0-9-]{36}$/i.test(id) || !(file instanceof File)) throw new Error("Choose a candidate and a PDF CV.");
+    const id = formData.get("candidateId"),
+      file = formData.get("file");
+    if (
+      typeof id !== "string" ||
+      !/^[a-f0-9-]{36}$/i.test(id) ||
+      !(file instanceof File)
+    )
+      throw new Error("Choose a candidate and a PDF CV.");
     candidateId = id;
     // Authorize before buffering/uploading. The service RPC rechecks access.
-    const candidate = await context.supabase.from("candidates").select("id,organization_id").eq("id", id).single();
-    if (candidate.error || !candidate.data) throw new Error("Candidate unavailable.");
-    if (file.size > 5 * 1024 * 1024 || file.size === 0) throw new Error("Choose a PDF smaller than 5 MB.");
+    const candidate = await context.supabase
+      .from("candidates")
+      .select("id,organization_id")
+      .eq("id", id)
+      .single();
+    if (candidate.error || !candidate.data)
+      throw new Error("Candidate unavailable.");
+    if (file.size > 5 * 1024 * 1024 || file.size === 0)
+      throw new Error("Choose a PDF smaller than 5 MB.");
     const bytes = new Uint8Array(await file.arrayBuffer());
     const validated = validatePdf(bytes, file.name, file.type);
     const admin = createAdminClient();
-    const reservation = await admin.rpc("reserve_cv", { actor_id: context.userId, cid: id, bytes: bytes.length, digest: validated.sha256 });
-    if (reservation.error || !reservation.data) throw new Error("Upload unavailable or quota reached. Retry later or contact your administrator.");
-    const { path, requestId } = reservation.data as { path: string; requestId: string };
-    const uploaded = await admin.storage.from("candidate-cvs").upload(path, bytes, { contentType: "application/pdf", cacheControl: "0", upsert: false });
-    if (uploaded.error) throw new Error("CV upload failed. Your previous CV is unchanged.");
-    const linked = await admin.rpc("commit_cv", { actor_id: context.userId, cid: id, rid: requestId, filename: validated.filename });
-    if (linked.error) throw new Error("CV could not be linked. Your previous CV is unchanged; cleanup is queued.");
-    if (!linked.data) throw new Error("A newer upload replaced this request. This file was not made active; cleanup is queued.");
+    const reservation = await admin.rpc("reserve_cv", {
+      actor_id: context.userId,
+      cid: id,
+      bytes: bytes.length,
+      digest: validated.sha256,
+    });
+    if (reservation.error || !reservation.data)
+      throw new Error(
+        "Upload unavailable or quota reached. Retry later or contact your administrator.",
+      );
+    const { path, requestId } = reservation.data as {
+      path: string;
+      requestId: string;
+    };
+    const uploaded = await admin.storage
+      .from("candidate-cvs")
+      .upload(path, bytes, {
+        contentType: "application/pdf",
+        cacheControl: "0",
+        upsert: false,
+      });
+    if (uploaded.error)
+      throw new Error("CV upload failed. Your previous CV is unchanged.");
+    const linked = await admin.rpc("commit_cv", {
+      actor_id: context.userId,
+      cid: id,
+      rid: requestId,
+      filename: validated.filename,
+    });
+    if (linked.error)
+      throw new Error(
+        "CV could not be linked. Your previous CV is unchanged; cleanup is queued.",
+      );
+    if (!linked.data)
+      throw new Error(
+        "A newer upload replaced this request. This file was not made active; cleanup is queued.",
+      );
     committed = true;
     revalidateWorkspace(candidate.data.organization_id as string);
     await cleanupCvFiles().catch(() => undefined);
     return await analyzeSavedCv(context, id);
   } catch (error) {
-    if (committed) return { ok: true, aiUnavailable: true, message: "CV uploaded. Analysis is unavailable; use Retry analysis later without uploading again." };
-    return { ok: false, error: messageFromError(error, "CV could not be processed.") };
+    if (committed)
+      return {
+        ok: true,
+        aiUnavailable: true,
+        message:
+          "CV uploaded. Analysis is unavailable; use Retry analysis later without uploading again.",
+      };
+    return {
+      ok: false,
+      error: messageFromError(error, "CV could not be processed."),
+    };
   } finally {
     if (candidateId) revalidatePath(`/candidates/${candidateId}`);
   }

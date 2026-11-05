@@ -3,7 +3,15 @@ import type { CandidateInput, JobInput, PipelineStage } from "@/lib/types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function cleanOptional(value: string | undefined): string | null {
+function cleanOptional(
+  value: string | undefined,
+  maxLength = 6000,
+): string | null {
+  if (
+    value !== undefined &&
+    (typeof value !== "string" || value.length > maxLength)
+  )
+    throw new Error("Optional field is invalid or too long.");
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
 }
@@ -13,6 +21,7 @@ function cleanRequired(
   label: string,
   maxLength: number,
 ): string {
+  if (typeof value !== "string") throw new Error(`${label} is required.`);
   const trimmed = value.trim();
   if (!trimmed) throw new Error(`${label} is required.`);
   if (trimmed.length > maxLength) throw new Error(`${label} is too long.`);
@@ -72,7 +81,8 @@ export function validateCandidateInput(
   const email = cleanRequired(input.email, "Email", 254).toLowerCase();
   if (!EMAIL_PATTERN.test(email))
     throw new Error("Enter a valid email address.");
-  if (!input.jobId) throw new Error("Choose a job for the candidate.");
+  if (typeof input.jobId !== "string" || !/^[a-f0-9-]{36}$/i.test(input.jobId))
+    throw new Error("Choose a job for the candidate.");
   if (!isPipelineStage(input.pipelineStage))
     throw new Error("Choose a valid pipeline stage.");
 
@@ -102,7 +112,11 @@ export function validateAdminUserInput(input: {
     throw new Error("Enter a valid email address.");
 
   const fullName = cleanRequired(input.fullName, "Name", 160);
-  if (input.password.length < 12) {
+  if (
+    typeof input.password !== "string" ||
+    input.password.length < 12 ||
+    input.password.length > 128
+  ) {
     throw new Error(
       "The initial password must be at least 12 characters long.",
     );

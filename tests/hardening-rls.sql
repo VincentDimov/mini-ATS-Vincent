@@ -34,6 +34,16 @@ do $$ declare old_upload jsonb; newest jsonb; ctx jsonb; newer_ctx jsonb; claim 
  update public.jobs set description='Changed' where id='a3000000-0000-4000-8000-000000000001';
  if not(select stale from public.candidate_analyses where candidate_id='a4000000-0000-4000-8000-000000000001') then raise exception 'Job change did not invalidate analysis'; end if;
  if public.save_analysis('a1000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001',(ctx->>'token')::uuid,ctx->>'path',(ctx->>'jobId')::uuid,(ctx->>'version')::bigint,payload,'test') then raise exception 'Outdated job result accepted'; end if;
+ -- Per-candidate upload and AI quotas cannot be bypassed by rapid retries.
+ for i in 3..10 loop perform public.reserve_cv('a1000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001',100,repeat('c',64)); end loop;
+ begin
+  perform public.reserve_cv('a1000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001',100,repeat('c',64));
+  raise exception 'Upload quota bypassed';
+ exception when raise_exception then if sqlerrm not like 'CV upload quota reached%' then raise; end if; end;
+ for i in 4..10 loop perform public.begin_analysis('a1000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001'); end loop;
+ begin
+  perform public.begin_analysis('a1000000-0000-4000-8000-000000000001','a4000000-0000-4000-8000-000000000001'); raise exception 'AI quota bypassed';
+ exception when raise_exception then if sqlerrm<>'AI retry quota reached' then raise; end if; end;
  -- Force abandoned reservation expiry, never the referenced current CV.
  update public.cv_files set next_attempt_at=now()-interval '1 hour';
  for claim in select * from public.claim_cv_cleanup(25) loop
@@ -54,4 +64,16 @@ do $$ begin
  begin select count(*) from public.cv_files; raise exception 'Registry exposed'; exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub','',true);
+select set_config('request.jwt.claims','{}',true);
+do $$ declare shared_path text:='a2000000-0000-4000-8000-000000000001/a4000000-0000-4000-8000-000000000002/shared.pdf'; begin
+ insert into public.cv_files(path,candidate_id,organization_id,state,size_bytes) values(shared_path,'a4000000-0000-4000-8000-000000000002','a2000000-0000-4000-8000-000000000001','current',100);
+ insert into public.candidates(id,organization_id,job_id,full_name,email,cv_path) values
+ ('a4000000-0000-4000-8000-000000000002','a2000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Shared synthetic A','shared-a@example.test',shared_path),
+ ('a4000000-0000-4000-8000-000000000003','a2000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Shared synthetic B','shared-b@example.test',shared_path);
+ delete from public.candidates where id='a4000000-0000-4000-8000-000000000002';
+ if not exists(select 1 from public.cv_files where path=shared_path and state='current') then raise exception 'Still-referenced legacy CV queued for deletion'; end if;
+ delete from public.candidates where id='a4000000-0000-4000-8000-000000000003';
+ if not exists(select 1 from public.cv_files where path=shared_path and state='queued') then raise exception 'Last shared CV reference did not queue cleanup'; end if;
+end $$;
 rollback;

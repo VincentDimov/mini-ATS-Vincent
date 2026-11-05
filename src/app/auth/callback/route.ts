@@ -1,9 +1,18 @@
-import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
-export async function GET(request: Request) {
+import { createRouteClient } from "@/lib/supabase/route";
+import { NextResponse, type NextRequest } from "next/server";
+export async function GET(request: NextRequest) {
   const code = new URL(request.url).searchParams.get("code");
-  const error = code ? (await (await createClient()).auth.exchangeCodeForSession(code)).error : true;
-  const response = NextResponse.redirect(new URL(error ? "/forgot-password?error=expired" : "/reset-password", request.url));
+  const response = new NextResponse(null, {
+    status: 303,
+    headers: { Location: "/reset-password" },
+  });
+  const result = code
+    ? await (
+        await createRouteClient(request, response)
+      ).auth.exchangeCodeForSession(code)
+    : null;
+  if (!result || result.error || !result.data.session)
+    response.headers.set("Location", "/forgot-password?error=expired");
   response.headers.set("Cache-Control", "no-store");
   response.headers.set("Referrer-Policy", "no-referrer");
   return response;

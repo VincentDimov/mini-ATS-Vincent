@@ -5,12 +5,13 @@ import { getWorkspaceData } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function CandidatesPage({ searchParams }: { searchParams: Promise<CandidateQuery> }) {
+export default async function CandidatesPage({
+  searchParams,
+}: {
+  searchParams: Promise<CandidateQuery>;
+}) {
   const { profile, supabase } = await requireCustomer();
-  const { jobs } = await getWorkspaceData(
-    supabase,
-    profile.organization_id!,
-  );
+  const { jobs } = await getWorkspaceData(supabase, profile.organization_id!);
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-2">
@@ -25,7 +26,12 @@ export default async function CandidatesPage({ searchParams }: { searchParams: P
         </p>
       </div>
       <div className="pt-4">
-        <PaginatedCandidates supabase={supabase} query={await searchParams} jobs={jobs} organizationId={profile.organization_id!} />
+        <PaginatedCandidates
+          supabase={supabase}
+          query={await searchParams}
+          jobs={jobs}
+          organizationId={profile.organization_id!}
+        />
       </div>
     </div>
   );

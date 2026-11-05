@@ -4,6 +4,8 @@ Ett komplett, multi-tenant Applicant Tracking System (ATS) för mindre rekryteri
 
 Detta är en ny, säker databasbaseline. Den ska tillämpas på ett nytt Supabase-projekt, inte ovanpå ett äldre schema med okända policies eller data.
 
+Produktionshärdningen har dokumenterade, additiva uppgraderingar för befintlig baseline. Läs [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) för audit och verifieringsstatus samt [DEPLOYMENT.md](DEPLOYMENT.md) före migration/driftsättning. Kör inte om baseline eller seeddata mot produktion.
+
 ## Funktioner
 
 - Inloggning med Supabase Auth och serverkontrollerade rollredirects.
@@ -137,6 +139,8 @@ Kör före leverans:
 npm run lint
 npm run typecheck
 npm test
+npm run test:db
+npm run test:e2e
 npm run build
 npm audit --omit=dev
 ~~~
@@ -168,7 +172,7 @@ Kontrollera före commit att **.env.local**, nycklar, exporterat databasmaterial
 
 ## Begränsningar och nästa steg
 
-- E-postinbjudningar, återställning av lösenord och MFA hanteras via Supabase Auth-konfiguration och är inte ersatta av en egen lösenordsfunktion.
+- Inbjudningar och återställning har nu gränssnitt och verifierade Auth-rutter. SMTP, e-postmallar, tillåtna redirect-URL:er och MFA behöver fortfarande konfigureras i Supabase.
 - AI-sammanfattning kräver nätverksåtkomst och en giltig OpenAI-nyckel; appen är fortfarande användbar utan AI.
 - En etablerad produktionsmiljö bör kompletteras med loggning, backup-rutin, dataretention, personuppgiftsbiträdesavtal och regelbundna RLS-tester.
 

@@ -93,7 +93,9 @@ export async function removeOrganization(id: string) {
     const { error } = await context.supabase
       .from("organizations")
       .delete()
-      .eq("id", id).select("id").single();
+      .eq("id", id)
+      .select("id")
+      .single();
     if (error) throw new Error("Organization could not be deleted.");
   });
 }
@@ -123,7 +125,9 @@ export async function updateManagedProfile(input: {
         is_active: input.is_active,
         is_org_manager: input.role === "customer" && input.is_org_manager,
       })
-      .eq("id", input.id).select("id").single();
+      .eq("id", input.id)
+      .select("id")
+      .single();
     if (error)
       throw new Error(
         "Profile could not be saved. Remove group memberships before changing the organization.",
@@ -184,7 +188,9 @@ export async function setMemberActive(
       .from("profiles")
       .update({ is_active: isActive })
       .eq("id", id)
-      .eq("organization_id", organizationId).select("id").single();
+      .eq("organization_id", organizationId)
+      .select("id")
+      .single();
     if (error) throw new Error("Member access could not be changed.");
   });
 }
@@ -211,7 +217,9 @@ export async function removeGroup(id: string, organizationId: string) {
       .from("job_groups")
       .delete()
       .eq("id", id)
-      .eq("organization_id", organizationId).select("id").single();
+      .eq("organization_id", organizationId)
+      .select("id")
+      .single();
     if (error) throw new Error("Group could not be removed.");
   });
 }
@@ -259,7 +267,9 @@ export async function assignJob(input: {
       .from("jobs")
       .update({ assigned_to: input.assignedTo, restricted: input.restricted })
       .eq("id", input.jobId)
-      .eq("organization_id", input.organizationId).select("id").single();
+      .eq("organization_id", input.organizationId)
+      .select("id")
+      .single();
     if (error) throw new Error("Job access could not be saved.");
   });
 }
@@ -287,7 +297,9 @@ export async function removeCandidateNote(noteId: string) {
     const { error } = await context.supabase
       .from("candidate_notes")
       .delete()
-      .eq("id", noteId).select("id").single();
+      .eq("id", noteId)
+      .select("id")
+      .single();
     if (error) throw new Error("Note could not be removed.");
   });
 }
@@ -302,7 +314,9 @@ export async function updateCandidateTags(candidateId: string, tags: string[]) {
     const { error } = await context.supabase
       .from("candidates")
       .update({ tags: values })
-      .eq("id", candidateId).select("id").single();
+      .eq("id", candidateId)
+      .select("id")
+      .single();
     if (error) throw new Error("Tags could not be saved.");
   });
 }
@@ -355,7 +369,9 @@ export async function setInterviewStatus(
     const { error } = await context.supabase
       .from("interviews")
       .update({ status })
-      .eq("id", id).select("id").single();
+      .eq("id", id)
+      .select("id")
+      .single();
     if (error) throw new Error("Interview could not be updated.");
   });
 }

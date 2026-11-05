@@ -19,7 +19,13 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useMemo,
+  useState,
+  useTransition,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -69,13 +75,16 @@ export function CandidateWorkspace({
   initialPreferences?: ViewPreferences;
   pagination?: { page: number; total: number };
 }) {
-  const [preferences, setPreferences] = useState<ViewPreferences>(initialPreferences ?? {
-    search: "",
-    jobFilter: "all",
-    view: "board",
-    stageFilter: "all",
-    sort: "newest",
-  });
+  const action = useWorkspaceAction();
+  const [preferences, setPreferences] = useState<ViewPreferences>(
+    initialPreferences ?? {
+      search: "",
+      jobFilter: "all",
+      view: "board",
+      stageFilter: "all",
+      sort: "newest",
+    },
+  );
   // A router refresh supplies a new server snapshot. Remounting only when that
   // snapshot changes resets optimistic state without a cascading setState effect.
   const snapshotKey = [
@@ -95,6 +104,7 @@ export function CandidateWorkspace({
       preferences={preferences}
       setPreferences={setPreferences}
       pagination={pagination}
+      action={action}
     />
   );
 }
@@ -106,6 +116,7 @@ function CandidateWorkspaceContent({
   preferences,
   setPreferences,
   pagination,
+  action,
 }: {
   initialCandidates: CandidateWithJob[];
   jobs: Job[];
@@ -113,27 +124,50 @@ function CandidateWorkspaceContent({
   preferences: ViewPreferences;
   setPreferences: Dispatch<SetStateAction<ViewPreferences>>;
   pagination?: { page: number; total: number };
+  action: ReturnType<typeof useWorkspaceAction>;
 }) {
   const router = useRouter();
+  const [filterPending, startFilterTransition] = useTransition();
   const [candidates, setCandidates] = useState(initialCandidates);
   const { search, jobFilter, view, stageFilter, sort } = preferences;
   function navigateFilters(values: ViewPreferences, page = 1) {
     if (!pagination) return;
     const params = new URLSearchParams(window.location.search);
-    for (const [key, value] of Object.entries({ q: values.search, job: values.jobFilter, stage: values.stageFilter, sort: values.sort, pipelineView: values.view, page: String(page) })) {
-      if (!value || value === "all") params.delete(key); else params.set(key, value);
+    for (const [key, value] of Object.entries({
+      q: values.search,
+      job: values.jobFilter,
+      stage: values.stageFilter,
+      sort: values.sort,
+      pipelineView: values.view,
+      page: String(page),
+    })) {
+      if (!value || value === "all") params.delete(key);
+      else params.set(key, value);
     }
-    router.replace(`${window.location.pathname}?${params}`, { scroll: false });
+    startFilterTransition(() =>
+      router.replace(`${window.location.pathname}?${params}`, {
+        scroll: false,
+      }),
+    );
   }
   const setSearch = (search: string) =>
     setPreferences((p) => ({ ...p, search }));
-  const setJobFilter = (jobFilter: string) =>
-    { setPreferences((p) => ({ ...p, jobFilter })); navigateFilters({ ...preferences, jobFilter }); };
-  const setView = (view: "board" | "list") =>
-    { setPreferences((p) => ({ ...p, view })); navigateFilters({ ...preferences, view }, pagination?.page); };
-  const setStageFilter = (stageFilter: string) =>
-    { setPreferences((p) => ({ ...p, stageFilter })); navigateFilters({ ...preferences, stageFilter }); };
-  const setSort = (sort: string) => { setPreferences((p) => ({ ...p, sort })); navigateFilters({ ...preferences, sort }); };
+  const setJobFilter = (jobFilter: string) => {
+    setPreferences((p) => ({ ...p, jobFilter }));
+    navigateFilters({ ...preferences, jobFilter });
+  };
+  const setView = (view: "board" | "list") => {
+    setPreferences((p) => ({ ...p, view }));
+    navigateFilters({ ...preferences, view }, pagination?.page);
+  };
+  const setStageFilter = (stageFilter: string) => {
+    setPreferences((p) => ({ ...p, stageFilter }));
+    navigateFilters({ ...preferences, stageFilter });
+  };
+  const setSort = (sort: string) => {
+    setPreferences((p) => ({ ...p, sort }));
+    navigateFilters({ ...preferences, sort });
+  };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<
     CandidateWithJob | undefined
@@ -143,7 +177,6 @@ function CandidateWorkspaceContent({
   );
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
-  const action = useWorkspaceAction();
 
   const filteredCandidates = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -239,7 +272,12 @@ function CandidateWorkspaceContent({
   }
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-5" aria-busy={filterPending}>
+      {filterPending ? (
+        <p role="status" className="text-sm text-muted-foreground">
+          Loading candidates…
+        </p>
+      ) : null}
       <div className="flex flex-col gap-3 rounded-2xl border border-primary/10 bg-card/85 p-4 shadow-lg shadow-primary/5 lg:flex-row lg:items-center">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -250,10 +288,19 @@ function CandidateWorkspaceContent({
             placeholder="Search by name, email or label"
             aria-label="Search candidates"
             maxLength={160}
-            onKeyDown={(event) => { if (event.key === "Enter") navigateFilters(preferences); }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") navigateFilters(preferences);
+            }}
           />
         </div>
-        {pagination ? <Button variant="outline" onClick={() => navigateFilters(preferences)}>Search all candidates</Button> : null}
+        {pagination ? (
+          <Button
+            variant="outline"
+            onClick={() => navigateFilters(preferences)}
+          >
+            Search all candidates
+          </Button>
+        ) : null}
         <select
           value={jobFilter}
           onChange={(event) => setJobFilter(event.target.value)}
@@ -355,7 +402,33 @@ function CandidateWorkspaceContent({
         </div>
       </div>
       <Feedback value={action.feedback} />
-      {pagination ? <nav aria-label="Candidate pagination" className="flex flex-wrap items-center gap-3 text-sm"><Button variant="outline" disabled={pagination.page <= 1} onClick={() => navigateFilters(preferences, pagination.page - 1)}>Previous page</Button><span role="status">Page {pagination.page} · {pagination.total} matches · showing up to 50. Board, bulk actions and CSV cover this page only.</span><Button variant="outline" disabled={pagination.page * 50 >= pagination.total || pagination.page >= 200} onClick={() => navigateFilters(preferences, pagination.page + 1)}>Next page</Button></nav> : null}
+      {pagination ? (
+        <nav
+          aria-label="Candidate pagination"
+          className="flex flex-wrap items-center gap-3 text-sm"
+        >
+          <Button
+            variant="outline"
+            disabled={pagination.page <= 1}
+            onClick={() => navigateFilters(preferences, pagination.page - 1)}
+          >
+            Previous page
+          </Button>
+          <span role="status">
+            Page {pagination.page} · {pagination.total} matches · showing up to
+            50. Board, bulk actions and CSV cover this page only.
+          </span>
+          <Button
+            variant="outline"
+            disabled={
+              pagination.page * 50 >= pagination.total || pagination.page >= 200
+            }
+            onClick={() => navigateFilters(preferences, pagination.page + 1)}
+          >
+            Next page
+          </Button>
+        </nav>
+      ) : null}
       {view === "list" ? (
         <div className="space-y-3">
           {selected.length ? (
