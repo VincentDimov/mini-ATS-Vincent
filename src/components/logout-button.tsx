@@ -1,28 +1,28 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { LoaderCircle, LogOut } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useState } from "react";
+import { LoaderCircle, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 
 interface LogoutButtonProps {
-  className?: string
+  className?: string;
 }
 
 export function LogoutButton({ className }: LogoutButtonProps) {
-  const router = useRouter()
-  const [isSigningOut, setIsSigningOut] = useState(false)
+  const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   async function handleLogout() {
-    setIsSigningOut(true)
+    setIsSigningOut(true);
 
     try {
-      const supabase = createClient()
-      await supabase.auth.signOut()
+      const supabase = createClient();
+      await supabase.auth.signOut();
     } finally {
-      router.replace('/login')
+      router.replace("/login");
     }
   }
 
@@ -34,8 +34,12 @@ export function LogoutButton({ className }: LogoutButtonProps) {
       onClick={handleLogout}
       disabled={isSigningOut}
     >
-      {isSigningOut ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <LogOut aria-hidden="true" />}
-      {isSigningOut ? 'Logging out...' : 'Log out'}
+      {isSigningOut ? (
+        <LoaderCircle className="animate-spin" aria-hidden="true" />
+      ) : (
+        <LogOut aria-hidden="true" />
+      )}
+      {isSigningOut ? "Logging out..." : "Log out"}
     </Button>
-  )
+  );
 }

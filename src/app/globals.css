@@ -28,7 +28,8 @@
   --color-foreground: var(--foreground);
   --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
-  --font-heading: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-heading:
+    "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -104,14 +105,15 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.72 0.16 275);
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -144,12 +146,61 @@
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(circle at 4% -8%, rgb(99 102 241 / 0.16), transparent 30rem),
-      radial-gradient(circle at 96% 2%, rgb(14 165 233 / 0.14), transparent 28rem),
-      radial-gradient(circle at 52% 102%, rgb(236 72 153 / 0.08), transparent 34rem);
+      radial-gradient(
+        circle at 4% -8%,
+        rgb(99 102 241 / 0.16),
+        transparent 30rem
+      ),
+      radial-gradient(
+        circle at 96% 2%,
+        rgb(14 165 233 / 0.14),
+        transparent 28rem
+      ),
+      radial-gradient(
+        circle at 52% 102%,
+        rgb(236 72 153 / 0.08),
+        transparent 34rem
+      );
     background-attachment: fixed;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  .workspace-heading {
+    @apply mb-6 flex flex-col justify-between gap-5 rounded-3xl border border-primary/10 bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-sm sm:p-8 xl:flex-row xl:items-end;
+  }
+  .avatar-tile {
+    @apply flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-sky-500/15 font-semibold text-primary;
+  }
+  .status-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-primary/10 bg-primary/5 px-2.5 py-1 text-[11px] font-medium;
+  }
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-[.12em] text-muted-foreground;
+  }
+  .brand-mark {
+    @apply flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-primary/20;
+  }
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+  .nav-item-active {
+    @apply bg-primary/10 text-primary shadow-[inset_0_0_0_1px_var(--border)];
+  }
+  .skip-link {
+    @apply fixed left-4 top-4 z-100 -translate-y-24 rounded-xl bg-primary px-4 py-3 text-white focus:translate-y-0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

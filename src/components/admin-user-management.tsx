@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react"
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import {
   Building2,
   CheckCircle2,
@@ -9,16 +9,16 @@ import {
   ShieldCheck,
   UserPlus,
   Users,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,61 +26,61 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
-const NEW_ORGANIZATION = "__new_organization__"
-const NO_ORGANIZATION = "__no_organization__"
+const NEW_ORGANIZATION = "__new_organization__";
+const NO_ORGANIZATION = "__no_organization__";
 
 export type AdminOrganization = {
-  id: string
-  name: string
-}
+  id: string;
+  name: string;
+};
 
 export type AdminUser = {
-  id: string
-  email: string
-  full_name: string
-  role: "admin" | "customer"
-  organization_id: string | null
-}
+  id: string;
+  email: string;
+  full_name: string;
+  role: "admin" | "customer";
+  organization_id: string | null;
+};
 
 export type CreateAdminUserInput = {
-  email: string
-  fullName: string
-  password: string
-  role: "admin" | "customer"
-  organizationId?: string
-  organizationName?: string
-}
+  email: string;
+  fullName: string;
+  password: string;
+  role: "admin" | "customer";
+  organizationId?: string;
+  organizationName?: string;
+};
 
 export type CreateAdminUserResult = {
-  ok: boolean
-  error?: string
-  message?: string
-}
+  ok: boolean;
+  error?: string;
+  message?: string;
+};
 
 type AdminUserManagementProps = {
-  organizations: AdminOrganization[]
-  users: AdminUser[]
-  onCreate: (input: CreateAdminUserInput) => Promise<CreateAdminUserResult>
-}
+  organizations: AdminOrganization[];
+  users: AdminUser[];
+  onCreate: (input: CreateAdminUserInput) => Promise<CreateAdminUserResult>;
+};
 
 type UserForm = {
-  email: string
-  fullName: string
-  password: string
-  role: AdminUser["role"]
-  organizationName: string
-}
+  email: string;
+  fullName: string;
+  password: string;
+  role: AdminUser["role"];
+  organizationName: string;
+};
 
 const initialForm: UserForm = {
   email: "",
@@ -88,10 +88,10 @@ const initialForm: UserForm = {
   password: "",
   role: "customer",
   organizationName: "",
-}
+};
 
 function roleLabel(role: AdminUser["role"]) {
-  return role === "admin" ? "Admin" : "Customer"
+  return role === "admin" ? "Admin" : "Customer";
 }
 
 export function AdminUserManagement({
@@ -99,102 +99,117 @@ export function AdminUserManagement({
   users,
   onCreate,
 }: AdminUserManagementProps) {
-  const [search, setSearch] = useState("")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [form, setForm] = useState<UserForm>(initialForm)
-  const [organizationChoice, setOrganizationChoice] = useState<string | undefined>(
-    organizations.length === 0 ? NEW_ORGANIZATION : undefined
-  )
-  const [formError, setFormError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState<UserForm>(initialForm);
+  const [organizationChoice, setOrganizationChoice] = useState<
+    string | undefined
+  >(organizations.length === 0 ? NEW_ORGANIZATION : undefined);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const organizationNames = useMemo(
-    () => new Map(organizations.map((organization) => [organization.id, organization.name])),
-    [organizations]
-  )
+    () =>
+      new Map(
+        organizations.map((organization) => [
+          organization.id,
+          organization.name,
+        ]),
+      ),
+    [organizations],
+  );
 
   const filteredUsers = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase()
+    const query = search.trim().toLocaleLowerCase();
 
-    if (!query) return users
+    if (!query) return users;
 
     return users.filter((user) => {
       const organization = user.organization_id
-        ? organizationNames.get(user.organization_id) ?? ""
-        : "unassigned"
+        ? (organizationNames.get(user.organization_id) ?? "")
+        : "unassigned";
 
-      return [user.full_name, user.email, roleLabel(user.role), organization].some((value) =>
-        value.toLocaleLowerCase().includes(query)
-      )
-    })
-  }, [organizationNames, search, users])
+      return [
+        user.full_name,
+        user.email,
+        roleLabel(user.role),
+        organization,
+      ].some((value) => value.toLocaleLowerCase().includes(query));
+    });
+  }, [organizationNames, search, users]);
 
-  const customerCount = users.filter((user) => user.role === "customer").length
-  const adminCount = users.length - customerCount
-  const isCreatingOrganization = organizationChoice === NEW_ORGANIZATION
-  const passwordIsLongEnough = form.password.length >= 12
+  const customerCount = users.filter((user) => user.role === "customer").length;
+  const adminCount = users.length - customerCount;
+  const isCreatingOrganization = organizationChoice === NEW_ORGANIZATION;
+  const passwordIsLongEnough = form.password.length >= 12;
 
   function resetForm() {
-    setForm(initialForm)
-    setOrganizationChoice(organizations.length === 0 ? NEW_ORGANIZATION : undefined)
-    setFormError(null)
+    setForm(initialForm);
+    setOrganizationChoice(
+      organizations.length === 0 ? NEW_ORGANIZATION : undefined,
+    );
+    setFormError(null);
   }
 
   function openCreateDialog() {
-    resetForm()
-    setDialogOpen(true)
+    resetForm();
+    setDialogOpen(true);
   }
 
   function handleDialogOpenChange(open: boolean) {
-    setDialogOpen(open)
-    if (!open) setFormError(null)
+    setDialogOpen(open);
+    if (!open) setFormError(null);
   }
 
   function handleRoleChange(value: string) {
-    const role = value as AdminUser["role"]
+    const role = value as AdminUser["role"];
     setForm((current) => ({
       ...current,
       role,
       organizationName: role === "admin" ? "" : current.organizationName,
-    }))
+    }));
 
     if (role === "admin") {
-      setOrganizationChoice(NO_ORGANIZATION)
+      setOrganizationChoice(NO_ORGANIZATION);
     } else if (organizationChoice === NO_ORGANIZATION) {
-      setOrganizationChoice(undefined)
+      setOrganizationChoice(undefined);
     }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setFormError(null)
-    setSuccessMessage(null)
+    event.preventDefault();
+    setFormError(null);
+    setSuccessMessage(null);
 
-    const email = form.email.trim()
-    const fullName = form.fullName.trim()
-    const password = form.password
-    const organizationName = isCreatingOrganization ? form.organizationName.trim() : ""
+    const email = form.email.trim();
+    const fullName = form.fullName.trim();
+    const password = form.password;
+    const organizationName = isCreatingOrganization
+      ? form.organizationName.trim()
+      : "";
     const organizationId =
       organizationChoice &&
       organizationChoice !== NEW_ORGANIZATION &&
       organizationChoice !== NO_ORGANIZATION
         ? organizationChoice
-        : undefined
+        : undefined;
 
     if (!email || !fullName || !password) {
-      setFormError("Enter an email address, name, and initial password.")
-      return
+      setFormError("Enter an email address, name, and initial password.");
+      return;
     }
 
     if (!passwordIsLongEnough) {
-      setFormError("The initial password must be at least 12 characters long.")
-      return
+      setFormError("The initial password must be at least 12 characters long.");
+      return;
     }
 
     if (form.role === "customer" && !organizationId && !organizationName) {
-      setFormError("Choose an existing organization or enter a new organization name.")
-      return
+      setFormError(
+        "Choose an existing organization or enter a new organization name.",
+      );
+      return;
     }
 
     startTransition(async () => {
@@ -206,22 +221,26 @@ export function AdminUserManagement({
           role: form.role,
           organizationId,
           organizationName: organizationName || undefined,
-        })
+        });
 
         if (!result.ok) {
-          setFormError(result.error ?? "Could not create the user. Please try again.")
-          return
+          setFormError(
+            result.error ?? "Could not create the user. Please try again.",
+          );
+          return;
         }
 
-        setSuccessMessage(result.message ?? "User created successfully.")
-        resetForm()
-        setDialogOpen(false)
+        setSuccessMessage(result.message ?? "User created successfully.");
+        resetForm();
+        setDialogOpen(false);
       } catch (error) {
         setFormError(
-          error instanceof Error ? error.message : "Could not create the user. Please try again."
-        )
+          error instanceof Error
+            ? error.message
+            : "Could not create the user. Please try again.",
+        );
       }
-    })
+    });
   }
 
   return (
@@ -230,16 +249,23 @@ export function AdminUserManagement({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-primary">
             <ShieldCheck className="size-4" aria-hidden="true" />
-            <span className="text-xs font-semibold tracking-wide uppercase">Administration</span>
+            <span className="text-xs font-semibold tracking-wide uppercase">
+              Administration
+            </span>
           </div>
           <h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
             User management
           </h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Create customer and administrator accounts, and keep organization access easy to audit.
+            Create customer and administrator accounts, and keep organization
+            access easy to audit.
           </p>
         </div>
-        <Button type="button" className="w-full sm:w-auto" onClick={openCreateDialog}>
+        <Button
+          type="button"
+          className="w-full sm:w-auto"
+          onClick={openCreateDialog}
+        >
           <UserPlus data-icon="inline-start" aria-hidden="true" />
           Add user
         </Button>
@@ -251,7 +277,10 @@ export function AdminUserManagement({
           role="status"
           aria-live="polite"
         >
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          <CheckCircle2
+            className="mt-0.5 size-4 shrink-0 text-primary"
+            aria-hidden="true"
+          />
           <span>{successMessage}</span>
         </div>
       ) : null}
@@ -263,7 +292,9 @@ export function AdminUserManagement({
               <Users className="size-4" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-xl font-semibold tabular-nums">{users.length}</p>
+              <p className="text-xl font-semibold tabular-nums">
+                {users.length}
+              </p>
               <p className="text-xs text-muted-foreground">Total users</p>
             </div>
           </CardContent>
@@ -274,7 +305,9 @@ export function AdminUserManagement({
               <Building2 className="size-4" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-xl font-semibold tabular-nums">{customerCount}</p>
+              <p className="text-xl font-semibold tabular-nums">
+                {customerCount}
+              </p>
               <p className="text-xs text-muted-foreground">Customer users</p>
             </div>
           </CardContent>
@@ -337,13 +370,20 @@ export function AdminUserManagement({
                   filteredUsers.map((user) => {
                     const organization = user.organization_id
                       ? organizationNames.get(user.organization_id)
-                      : undefined
+                      : undefined;
 
                     return (
-                      <tr key={user.id} className="transition-colors hover:bg-muted/40">
+                      <tr
+                        key={user.id}
+                        className="transition-colors hover:bg-muted/40"
+                      >
                         <td className="px-3 py-3">
-                          <p className="font-medium text-foreground">{user.full_name || "Unnamed user"}</p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">{user.email}</p>
+                          <p className="font-medium text-foreground">
+                            {user.full_name || "Unnamed user"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {user.email}
+                          </p>
                         </td>
                         <td className="px-3 py-3">
                           <RoleBadge role={user.role} />
@@ -352,11 +392,14 @@ export function AdminUserManagement({
                           {organization ?? "Unassigned"}
                         </td>
                       </tr>
-                    )
+                    );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={3} className="px-3 py-10 text-center text-muted-foreground">
+                    <td
+                      colSpan={3}
+                      className="px-3 py-10 text-center text-muted-foreground"
+                    >
                       No users match your search.
                     </td>
                   </tr>
@@ -370,23 +413,32 @@ export function AdminUserManagement({
               filteredUsers.map((user) => {
                 const organization = user.organization_id
                   ? organizationNames.get(user.organization_id)
-                  : undefined
+                  : undefined;
 
                 return (
                   <article key={user.id} className="rounded-lg border p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate font-medium">{user.full_name || "Unnamed user"}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
+                        <p className="truncate font-medium">
+                          {user.full_name || "Unnamed user"}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </p>
                       </div>
                       <RoleBadge role={user.role} />
                     </div>
                     <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                      <Building2 className="size-3.5 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{organization ?? "Unassigned"}</span>
+                      <Building2
+                        className="size-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="truncate">
+                        {organization ?? "Unassigned"}
+                      </span>
                     </div>
                   </article>
-                )
+                );
               })
             ) : (
               <div className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
@@ -398,12 +450,16 @@ export function AdminUserManagement({
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg" showCloseButton={!isPending}>
+        <DialogContent
+          className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg"
+          showCloseButton={!isPending}
+        >
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Create user</DialogTitle>
               <DialogDescription>
-                Add an administrator or customer account. Customer users must belong to an organization.
+                Add an administrator or customer account. Customer users must
+                belong to an organization.
               </DialogDescription>
             </DialogHeader>
 
@@ -422,7 +478,12 @@ export function AdminUserManagement({
                 <Input
                   id="new-user-name"
                   value={form.fullName}
-                  onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      fullName: event.target.value,
+                    }))
+                  }
                   autoComplete="name"
                   placeholder="e.g. Alex Morgan"
                   required
@@ -436,7 +497,12 @@ export function AdminUserManagement({
                   id="new-user-email"
                   type="email"
                   value={form.email}
-                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
                   autoComplete="email"
                   placeholder="alex@company.com"
                   required
@@ -450,7 +516,12 @@ export function AdminUserManagement({
                   id="new-user-password"
                   type="password"
                   value={form.password}
-                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      password: event.target.value,
+                    }))
+                  }
                   autoComplete="new-password"
                   minLength={12}
                   placeholder="At least 12 characters"
@@ -460,7 +531,11 @@ export function AdminUserManagement({
                 />
                 <p
                   id="new-user-password-help"
-                  className={passwordIsLongEnough || !form.password ? "text-xs text-muted-foreground" : "text-xs text-destructive"}
+                  className={
+                    passwordIsLongEnough || !form.password
+                      ? "text-xs text-muted-foreground"
+                      : "text-xs text-destructive"
+                  }
                 >
                   {passwordIsLongEnough || !form.password
                     ? "Use at least 12 characters. The user can change it after signing in."
@@ -471,7 +546,11 @@ export function AdminUserManagement({
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="new-user-role">Role</Label>
-                  <Select value={form.role} onValueChange={handleRoleChange} disabled={isPending}>
+                  <Select
+                    value={form.role}
+                    onValueChange={handleRoleChange}
+                    disabled={isPending}
+                  >
                     <SelectTrigger id="new-user-role" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -485,27 +564,39 @@ export function AdminUserManagement({
                 <div className="grid gap-2">
                   <Label htmlFor="new-user-organization">
                     Organization
-                    {form.role === "customer" ? <span className="text-destructive">*</span> : null}
+                    {form.role === "customer" ? (
+                      <span className="text-destructive">*</span>
+                    ) : null}
                   </Label>
                   <Select
                     value={organizationChoice}
                     onValueChange={setOrganizationChoice}
                     disabled={isPending}
                   >
-                    <SelectTrigger id="new-user-organization" className="w-full">
+                    <SelectTrigger
+                      id="new-user-organization"
+                      className="w-full"
+                    >
                       <SelectValue placeholder="Choose organization" />
                     </SelectTrigger>
                     <SelectContent>
                       {form.role === "admin" ? (
-                        <SelectItem value={NO_ORGANIZATION}>No organization</SelectItem>
+                        <SelectItem value={NO_ORGANIZATION}>
+                          No organization
+                        </SelectItem>
                       ) : (
                         <>
                           {organizations.map((organization) => (
-                            <SelectItem key={organization.id} value={organization.id}>
+                            <SelectItem
+                              key={organization.id}
+                              value={organization.id}
+                            >
                               {organization.name}
                             </SelectItem>
                           ))}
-                          <SelectItem value={NEW_ORGANIZATION}>Create a new organization</SelectItem>
+                          <SelectItem value={NEW_ORGANIZATION}>
+                            Create a new organization
+                          </SelectItem>
                         </>
                       )}
                     </SelectContent>
@@ -515,12 +606,17 @@ export function AdminUserManagement({
 
               {isCreatingOrganization ? (
                 <div className="grid gap-2">
-                  <Label htmlFor="new-organization-name">New organization name</Label>
+                  <Label htmlFor="new-organization-name">
+                    New organization name
+                  </Label>
                   <Input
                     id="new-organization-name"
                     value={form.organizationName}
                     onChange={(event) =>
-                      setForm((current) => ({ ...current, organizationName: event.target.value }))
+                      setForm((current) => ({
+                        ...current,
+                        organizationName: event.target.value,
+                      }))
                     }
                     placeholder="e.g. Acme Recruitment"
                     required={form.role === "customer"}
@@ -537,11 +633,20 @@ export function AdminUserManagement({
             </div>
 
             <DialogFooter className="mt-5">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                disabled={isPending}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <UserPlus aria-hidden="true" />}
+                {isPending ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <UserPlus aria-hidden="true" />
+                )}
                 {isPending ? "Creating user…" : "Create user"}
               </Button>
             </DialogFooter>
@@ -549,11 +654,11 @@ export function AdminUserManagement({
         </DialogContent>
       </Dialog>
     </section>
-  )
+  );
 }
 
 function RoleBadge({ role }: { role: AdminUser["role"] }) {
-  const isAdmin = role === "admin"
+  const isAdmin = role === "admin";
 
   return (
     <span
@@ -563,10 +668,14 @@ function RoleBadge({ role }: { role: AdminUser["role"] }) {
           : "inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
       }
     >
-      {isAdmin ? <ShieldCheck className="size-3" aria-hidden="true" /> : <Users className="size-3" aria-hidden="true" />}
+      {isAdmin ? (
+        <ShieldCheck className="size-3" aria-hidden="true" />
+      ) : (
+        <Users className="size-3" aria-hidden="true" />
+      )}
       {roleLabel(role)}
     </span>
-  )
+  );
 }
 
-export default AdminUserManagement
+export default AdminUserManagement;
