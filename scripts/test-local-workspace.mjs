@@ -1,12 +1,14 @@
 import { execFileSync, spawn } from "node:child_process";
 import { randomUUID, randomBytes } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { verifyLocalCv } from "./verify-local-cv.mjs";
+import { createServerClient } from "@supabase/ssr";
 
 // Never load .env here: this runner must not touch a connected production project.
 const status = JSON.parse(
   execFileSync(
     process.platform === "win32" ? "npx.cmd" : "npx",
-    ["--yes", "supabase@latest", "status", "--output", "json"],
+    ["--yes", "supabase@3.0.0", "status", "--output", "json"],
     {
       encoding: "utf8",
       shell: process.platform === "win32",
@@ -40,7 +42,7 @@ try {
       .select(),
   );
   organizationIds.push(...organizations.map((o) => o.id));
-  for (const role of ["admin", "manager", "member", "other"]) {
+  for (const role of ["admin", "manager", "member", "other", "recovery"]) {
     const password = randomBytes(24).toString("base64url") + "!a7A";
     const email = `e2e-${role}-${suffix}@example.test`;
     const { user } = checked(
@@ -54,16 +56,14 @@ try {
     const organizationId =
       role === "admin" ? null : organizations[role === "other" ? 1 : 0].id;
     checked(
-      await admin
-        .from("profiles")
-        .insert({
-          id: user.id,
-          email,
-          full_name: "E2E " + role,
-          role: role === "admin" ? "admin" : "customer",
-          organization_id: organizationId,
-          is_org_manager: role === "manager",
-        }),
+      await admin.from("profiles").insert({
+        id: user.id,
+        email,
+        full_name: "E2E " + role,
+        role: role === "admin" ? "admin" : "customer",
+        organization_id: organizationId,
+        is_org_manager: role === "manager",
+      }),
     );
     accounts[role] = { id: user.id, email, password, organizationId };
     const authProbe = createClient(status.API_URL, status.ANON_KEY, {
@@ -108,6 +108,42 @@ try {
       .select()
       .single(),
   );
+  await verifyLocalCv({ admin, status, accounts, jobs, organizationIds });
+  const probeLink = checked(
+    await admin.auth.admin.generateLink({
+      type: "recovery",
+      email: accounts.recovery.email,
+    }),
+  );
+  let recoveryCookieCount = 0;
+  const authProbe = createServerClient(status.API_URL, status.ANON_KEY, {
+    cookies: {
+      getAll: () => [],
+      setAll: (values) => {
+        recoveryCookieCount += values.filter((value) => value.value).length;
+      },
+    },
+  });
+  await authProbe.auth.initialize();
+  checked(
+    await authProbe.auth.verifyOtp({
+      type: "recovery",
+      token_hash: probeLink.properties.hashed_token,
+    }),
+  );
+  if (!recoveryCookieCount)
+    throw new Error("Local Auth recovery did not write session cookies.");
+  console.log(
+    "PASS Auth recovery cookie transport:",
+    recoveryCookieCount,
+    "cookie chunks",
+  );
+  const recovery = checked(
+    await admin.auth.admin.generateLink({
+      type: "recovery",
+      email: accounts.recovery.email,
+    }),
+  );
   const env = {
     ...process.env,
     NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
@@ -115,6 +151,8 @@ try {
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "",
     SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
     OPENAI_API_KEY: "",
+    SITE_URL: "http://127.0.0.1:3008",
+    MAINTENANCE_SECRET: randomBytes(32).toString("hex"),
     ATS_E2E: JSON.stringify({
       accounts,
       jobs,
@@ -123,6 +161,7 @@ try {
       suffix,
       url: status.API_URL,
       anonKey: status.ANON_KEY,
+      recoveryHash: recovery.properties.hashed_token,
     }),
   };
   server = spawn(
@@ -140,13 +179,20 @@ try {
   );
   server.stdout.on("data", (data) => {
     const line = data.toString();
-    if (/error|Error|Ready|GET|POST/.test(line)) process.stdout.write(line);
+    if (/error|Error|Ready|GET|POST|Recovery server/.test(line))
+      process.stdout.write(
+        line.replace(/token_hash=[^&\s]+/g, "token_hash=[REDACTED]"),
+      );
   });
   server.stderr.on("data", (data) => process.stderr.write(data));
   let ready = false;
   for (let i = 0; i < 120; i++) {
     try {
-      ready = (await fetch("http://127.0.0.1:3008/login")).ok;
+      ready = (
+        await fetch("http://127.0.0.1:3008/login", {
+          signal: AbortSignal.timeout(5000),
+        })
+      ).ok;
     } catch {
       /* still starting */
     }
@@ -156,7 +202,7 @@ try {
   if (!ready) throw new Error("Local application failed to start.");
   const tests = spawn(
     process.execPath,
-    ["node_modules/@playwright/test/cli.js", "test"],
+    ["node_modules/@playwright/test/cli.js", "test", ...process.argv.slice(2)],
     { env, stdio: "inherit", windowsHide: true },
   );
   exitCode = await new Promise((resolve) =>
@@ -165,11 +211,17 @@ try {
 } finally {
   if (server) {
     // Terminate only the test server process created above, never any existing user's server.
-    if (process.platform === "win32")
-      execFileSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], {
-        stdio: "ignore",
-      });
-    else server.kill("SIGTERM");
+    if (server.exitCode === null) {
+      if (process.platform === "win32") {
+        try {
+          execFileSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], {
+            stdio: "ignore",
+          });
+        } catch {
+          /* The server may have already exited. Always clean test data. */
+        }
+      } else server.kill("SIGTERM");
+    }
   }
   // Delete only this run's synthetic workspaces and Auth fixtures, including UI-created members.
   if (organizationIds.length) {
@@ -203,6 +255,24 @@ try {
     }
     checked(
       await admin.from("organizations").delete().in("id", organizationIds),
+    );
+    const files = checked(
+      await admin
+        .from("cv_files")
+        .select("path")
+        .in("organization_id", organizationIds),
+    );
+    if (files.length)
+      checked(
+        await admin.storage
+          .from("candidate-cvs")
+          .remove(files.map((file) => file.path)),
+      );
+    checked(
+      await admin
+        .from("cv_files")
+        .delete()
+        .in("organization_id", organizationIds),
     );
   }
 }

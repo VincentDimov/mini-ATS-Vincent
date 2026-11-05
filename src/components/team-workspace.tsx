@@ -317,11 +317,17 @@ export function TeamWorkspace({
                 () =>
                   draft.id
                     ? renameTeamMember(draft.id, organizationId, draft.fullName)
-                    : sendInvite ? inviteRecruiter({ email: draft.email, fullName: draft.fullName, organizationId }) : createManagedUser({
-                        ...draft,
-                        role: "customer",
-                        organizationId,
-                      }),
+                    : sendInvite
+                      ? inviteRecruiter({
+                          email: draft.email,
+                          fullName: draft.fullName,
+                          organizationId,
+                        })
+                      : createManagedUser({
+                          ...draft,
+                          role: "customer",
+                          organizationId,
+                        }),
                 () => setOpen(false),
               );
             }}
@@ -348,7 +354,16 @@ export function TeamWorkspace({
                 onChange={(e) => setDraft({ ...draft, email: e.target.value })}
               />
             </div>
-            {!draft.id ? <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sendInvite} onChange={event => setSendInvite(event.target.checked)} />Send email invitation (recruiter chooses password)</label> : null}
+            {!draft.id ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={sendInvite}
+                  onChange={(event) => setSendInvite(event.target.checked)}
+                />
+                Send email invitation (recruiter chooses password)
+              </label>
+            ) : null}
             {!draft.id && !sendInvite ? (
               <div className="space-y-2">
                 <Label htmlFor="member-password">Initial password</Label>
@@ -368,7 +383,11 @@ export function TeamWorkspace({
             <Feedback value={action.feedback} />
             <Button type="submit" disabled={action.pending}>
               <Busy pending={action.pending} />
-              {draft.id ? "Save teammate" : sendInvite ? "Send invitation" : "Create account"}
+              {draft.id
+                ? "Save teammate"
+                : sendInvite
+                  ? "Send invitation"
+                  : "Create account"}
             </Button>
           </form>
         </DialogContent>

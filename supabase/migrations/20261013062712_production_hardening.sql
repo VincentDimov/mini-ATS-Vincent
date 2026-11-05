@@ -32,6 +32,7 @@ create index cv_files_org_idx on public.cv_files(organization_id,created_at);
 create index cv_files_candidate_idx on public.cv_files(candidate_id);
 create index candidates_retention_idx on public.candidates(retain_until) where retain_until is not null;
 create index candidates_cursor_idx on public.candidates(organization_id,created_at desc,id desc);
+create index candidates_cv_path_idx on public.candidates(cv_path) where cv_path is not null;
 create index if not exists jobs_assigned_idx on public.jobs(assigned_to);
 create index if not exists jobs_creator_idx on public.jobs(created_by);
 create index if not exists candidates_creator_idx on public.candidates(created_by);
@@ -56,6 +57,9 @@ select o.name,c.id,c.organization_id,'queued',0,now()+interval '24 hours'
 from storage.objects o join public.candidates c
  on split_part(o.name,'/',1)=c.organization_id::text and split_part(o.name,'/',2)=c.id::text
 where o.bucket_id='candidate-cvs' on conflict(path) do nothing;
+update public.cv_files f set size_bytes=least(5242880,(to_jsonb(o)->'metadata'->>'size')::bigint)
+from storage.objects o where o.bucket_id='candidate-cvs' and o.name=f.path
+ and (to_jsonb(o)->'metadata'->>'size') ~ '^[0-9]{1,9}$';
 
 -- Browser clients cannot bypass PDF validation, quotas or CAS by using Storage
 -- directly. Only the authenticated server workflow uses service-role writes.
@@ -94,7 +98,7 @@ create function private.cv_lifecycle() returns trigger language plpgsql security
 begin
  if tg_op='DELETE' then
   update public.cv_files set state='queued',next_attempt_at=case when state='reserved' then greatest(next_attempt_at,now()+interval '24 hours') else now() end
-   where candidate_id=old.id and state not in ('deleting','deleted')
+   where (candidate_id=old.id or path=old.cv_path) and state not in ('deleting','deleted')
     and not exists(select 1 from public.candidates c where c.cv_path=cv_files.path);
   -- Audit is pseudonymized rather than retaining a deleted candidate's name.
   update public.activity_log set entity_name='Deleted candidate',details='{}'::jsonb where entity_type='candidates' and entity_id=old.id;
@@ -128,6 +132,40 @@ begin
  return new;
 end; $$;
 create trigger interviews_identity before update on public.interviews for each row execute function private.guard_interview_identity();
+
+-- Do not copy candidate/interview names into new audit records. Older linked
+-- interview labels are scrubbed before the FK cascade removes their linkage.
+create or replace function private.audit_change() returns trigger language plpgsql security definer set search_path='' as $$
+declare row_data jsonb; prior jsonb; oid uuid; jid uuid; label text; actor text;
+begin
+ row_data:=case when tg_op='DELETE' then to_jsonb(old) else to_jsonb(new) end;
+ prior:=case when tg_op='UPDATE' then to_jsonb(old) else '{}'::jsonb end;
+ oid:=case when tg_table_name='organizations' then (row_data->>'id')::uuid else (row_data->>'organization_id')::uuid end;
+ jid:=case when tg_table_name='jobs' then (row_data->>'id')::uuid when tg_table_name='candidates' then (row_data->>'job_id')::uuid else null end;
+ if tg_table_name in ('interviews','candidate_notes') then select job_id into jid from public.candidates where id=(row_data->>'candidate_id')::uuid; end if;
+ label:=case when tg_table_name='candidates' then 'Candidate record' when tg_table_name='interviews' then 'Interview record' else coalesce(row_data->>'title',row_data->>'name',row_data->>'full_name',tg_table_name) end;
+ select coalesce(nullif(full_name,''),email) into actor from public.profiles where id=auth.uid();
+ insert into public.activity_log(organization_id,job_id,actor_id,actor_name,action,entity_type,entity_id,entity_name,details)
+ values(oid,jid,auth.uid(),coalesce(actor,'System'),lower(tg_op),tg_table_name,(row_data->>'id')::uuid,label,
+ jsonb_strip_nulls(jsonb_build_object('from_stage',prior->>'pipeline_stage','to_stage',row_data->>'pipeline_stage','status',row_data->>'status')));
+ return coalesce(new,old);
+end; $$;
+create function private.prepare_candidate_erasure() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ update public.activity_log set entity_name='Deleted candidate data',details='{}'::jsonb
+ where (entity_type='interviews' and entity_id in(select id from public.interviews where candidate_id=old.id))
+ or (entity_type='candidate_notes' and entity_id in(select id from public.candidate_notes where candidate_id=old.id));
+ return old;
+end; $$;
+revoke all on function private.prepare_candidate_erasure() from public,anon,authenticated;
+create trigger candidates_prepare_erasure before delete on public.candidates for each row execute function private.prepare_candidate_erasure();
+create function private.guard_job_tenant() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if new.organization_id is distinct from old.organization_id then raise exception 'Jobs cannot move between workspaces'; end if;
+ return new;
+end; $$;
+revoke all on function private.guard_job_tenant() from public,anon,authenticated;
+create trigger jobs_tenant_guard before update on public.jobs for each row execute function private.guard_job_tenant();
 
 -- Service-only RPCs. actor_id comes from verified getUser(), never from an
 -- organization ID, form field, metadata, or a client-provided JWT decode.
@@ -215,13 +253,14 @@ begin
  return true;
 end; $$;
 
-create function public.claim_cv_cleanup(batch_size integer default 25) returns table(path text,lease_id uuid) language plpgsql security definer set search_path='' as $$
+create function public.claim_cv_cleanup(batch_size integer default 25,target_org uuid default null) returns table(path text,lease_id uuid) language plpgsql security definer set search_path='' as $$
 begin
  -- Recover late uploads after an expired/previously completed reservation.
- update public.cv_files f set state='queued',next_attempt_at=now() where state='deleted'
+ update public.cv_files f set state='queued',next_attempt_at=now() where state='deleted' and (target_org is null or organization_id=target_org)
   and exists(select 1 from storage.objects o where o.bucket_id='candidate-cvs' and o.name=f.path);
+ delete from public.cv_files f where state='deleted' and next_attempt_at<now()-interval '7 days' and (target_org is null or organization_id=target_org);
  return query with pending as (
-  select f.path from public.cv_files f where state in ('reserved','queued','deleting') and next_attempt_at<=now()
+  select f.path from public.cv_files f where state in ('reserved','queued','deleting') and next_attempt_at<=now() and (target_org is null or organization_id=target_org)
    and not exists(select 1 from public.candidates c where c.cv_path=f.path)
   order by next_attempt_at limit least(greatest(batch_size,1),100) for update skip locked
  ) update public.cv_files f set state='deleting',lease_id=gen_random_uuid(),attempts=attempts+1,next_attempt_at=now()+interval '10 minutes'
@@ -236,6 +275,7 @@ end; $$;
 create function public.purge_expired_candidates(batch_size integer default 100) returns integer language plpgsql security definer set search_path='' as $$
 declare n integer;
 begin
+ delete from public.ai_runs where created_at<now()-interval '1 day';
  delete from public.candidates where id in(select id from public.candidates where retain_until<=now() order by retain_until limit least(greatest(batch_size,1),100) for update skip locked);
  get diagnostics n=row_count;
  return n;
@@ -244,10 +284,10 @@ end; $$;
 -- Every function has a fixed empty search_path and explicit execution grants.
 revoke all on function private.harden_candidate(),private.cv_lifecycle(),private.job_context_version(),private.guard_interview_identity(),private.use_actor(uuid) from public,anon,authenticated;
 revoke all on function public.reserve_cv(uuid,uuid,bigint,text),public.commit_cv(uuid,uuid,uuid,text),public.begin_analysis(uuid,uuid),
- public.save_analysis(uuid,uuid,uuid,text,uuid,bigint,jsonb,text),public.claim_cv_cleanup(integer),public.finish_cv_cleanup(text,uuid,boolean),public.purge_expired_candidates(integer)
+ public.save_analysis(uuid,uuid,uuid,text,uuid,bigint,jsonb,text),public.claim_cv_cleanup(integer,uuid),public.finish_cv_cleanup(text,uuid,boolean),public.purge_expired_candidates(integer)
  from public,anon,authenticated;
 grant execute on function public.reserve_cv(uuid,uuid,bigint,text),public.commit_cv(uuid,uuid,uuid,text),public.begin_analysis(uuid,uuid),
- public.save_analysis(uuid,uuid,uuid,text,uuid,bigint,jsonb,text),public.claim_cv_cleanup(integer),public.finish_cv_cleanup(text,uuid,boolean),public.purge_expired_candidates(integer)
+ public.save_analysis(uuid,uuid,uuid,text,uuid,bigint,jsonb,text),public.claim_cv_cleanup(integer,uuid),public.finish_cv_cleanup(text,uuid,boolean),public.purge_expired_candidates(integer)
  to service_role;
 
 -- Parameter-bound literal search; caller RLS remains authoritative even for an

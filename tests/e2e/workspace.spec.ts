@@ -40,13 +40,27 @@ async function login(page: Page, role: string) {
   await expect(page).toHaveURL(role === "admin" ? /\/admin$/ : /\/dashboard$/);
 }
 
-test("public landing is responsive and protected pages require authentication", async ({ page }) => {
+test("public landing is responsive and protected pages require authentication", async ({
+  page,
+}) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Great teams");
-  await page.screenshot({ path: "test-results/landing-desktop.png", fullPage: true });
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "Great teams",
+  );
+  await page.screenshot({
+    path: "test-results/landing-desktop.png",
+    fullPage: true,
+  });
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: "test-results/landing-mobile.png", fullPage: true });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/landing-mobile.png",
+    fullPage: true,
+  });
   await page.goto("/admin/users");
   await expect(page).toHaveURL(/\/login\?/);
 });
@@ -71,19 +85,20 @@ test("candidate collaboration, private PDF, bulk pipeline, interview and calenda
   const pdf = Buffer.from(
     "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF",
   );
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "synthetic-test.pdf",
-      mimeType: "application/pdf",
-      buffer: pdf,
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "synthetic-test.pdf",
+    mimeType: "application/pdf",
+    buffer: pdf,
+  });
   await page
     .getByRole("button", { name: "Upload PDF CV", exact: true })
     .click();
   await expect(
     page.getByText("synthetic-test.pdf", { exact: true }).first(),
   ).toBeVisible();
+  const cvDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download CV", exact: true }).click();
+  expect((await cvDownload).suggestedFilename()).toBe("synthetic-test.pdf");
   await page.reload();
   await expect(
     page.getByText("E2E shared feedback: next conversation confirmed", {
@@ -135,11 +150,115 @@ test("candidate collaboration, private PDF, bulk pipeline, interview and calenda
   await page.getByRole("button", { name: "Complete", exact: true }).click();
   await expect(page.getByText("completed", { exact: true })).toBeVisible();
   await page.goto("/dashboard/activity");
-  await expect(page.getByText("E2E Candidate").first()).toBeVisible();
+  await expect(
+    page.getByText("Candidate record", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("E2E Candidate", { exact: true })).toHaveCount(0);
   await page.screenshot({
     path: "test-results/activity-desktop.png",
     fullPage: true,
   });
+});
+
+test("database search and pipeline context survive mutations and reload", async ({
+  page,
+}) => {
+  await login(page, "manager");
+  await page.goto("/dashboard/candidates?q=E2E&pipelineView=list&sort=name");
+  await expect(
+    page.getByLabel("Search candidates", { exact: true }),
+  ).toHaveValue("E2E");
+  await expect(page.getByLabel("Sort candidates", { exact: true })).toHaveValue(
+    "name",
+  );
+  await page
+    .getByRole("checkbox", { name: "Select E2E Candidate", exact: true })
+    .check();
+  await page
+    .getByLabel("Move selected candidates", { exact: true })
+    .selectOption("screening");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Saved" }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/q=E2E/);
+  await page.reload();
+  await expect(
+    page.getByLabel("Search candidates", { exact: true }),
+  ).toHaveValue("E2E");
+  await expect(page.getByLabel("Sort candidates", { exact: true })).toHaveValue(
+    "name",
+  );
+  await page
+    .getByLabel("Search candidates", { exact: true })
+    .fill("no-such-synthetic-candidate");
+  await page.getByLabel("Search candidates", { exact: true }).press("Enter");
+  await expect(
+    page.getByRole("status").filter({ hasText: "0 matches" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("real single-use recovery token sets a password; expired token and maintenance are denied safely", async ({
+  page,
+}) => {
+  const response = await page.request.post("/api/maintenance");
+  expect(response.status()).toBe(401);
+  expect(
+    (
+      await page.request.post("/api/maintenance", {
+        headers: { Authorization: "Bearer " + "ä".repeat(64) },
+      })
+    ).status(),
+  ).toBe(401);
+  await page.goto(
+    `/auth/confirm?type=recovery&token_hash=${fixture.recoveryHash}`,
+  );
+  await expect(page).toHaveURL(/\/reset-password$/);
+  expect(new URL(page.url()).origin).toBe("http://127.0.0.1:3008");
+  expect(
+    (await page.context().cookies()).find(
+      (cookie) => cookie.name === "mini-ats-recovery",
+    )?.httpOnly,
+  ).toBe(true);
+  const password = "Synthetic-Recovery!" + fixture.suffix + "7aA";
+  await page
+    .getByLabel("New password (12–128 characters)", { exact: true })
+    .fill(password);
+  await page.getByLabel("Confirm password", { exact: true }).fill(password);
+  await page
+    .getByRole("button", { name: "Save password", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Password saved. Sign in with your new password.",
+  );
+  await page.goto(
+    `/auth/confirm?type=recovery&token_hash=${fixture.recoveryHash}`,
+  );
+  await expect(page).toHaveURL(/\/reset-password$/);
+  await page
+    .getByLabel("New password (12–128 characters)", { exact: true })
+    .fill(password + "2");
+  await page
+    .getByLabel("Confirm password", { exact: true })
+    .fill(password + "2");
+  await page
+    .getByRole("button", { name: "Save password", exact: true })
+    .click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "already used" }),
+  ).toBeVisible();
+  await page.goto("/login");
+  await page
+    .getByLabel("Email", { exact: true })
+    .fill(fixture.accounts.recovery.email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
 });
 
 test("job and candidate creation, job detail, editing and deletion work end to end", async ({
@@ -158,14 +277,12 @@ test("job and candidate creation, job detail, editing and deletion work end to e
     .getByLabel("Salary range", { exact: true })
     .fill("45,000–60,000 SEK / month");
   await page.getByRole("button", { name: "Create job", exact: true }).click();
-  const card = page
-    .getByRole("article")
-    .filter({
-      has: page.getByRole("heading", {
-        name: "E2E UI-created role",
-        exact: true,
-      }),
-    });
+  const card = page.getByRole("article").filter({
+    has: page.getByRole("heading", {
+      name: "E2E UI-created role",
+      exact: true,
+    }),
+  });
   await expect(card).toBeVisible();
   await card.getByRole("link", { name: "Open role", exact: true }).click();
   await expect(page).toHaveURL(/\/dashboard\/jobs\//);

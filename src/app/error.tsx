@@ -12,7 +12,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    console.error("Workspace rendering failed", {
+      digest: error.digest ?? "unavailable",
+    });
   }, [error]);
 
   return (
@@ -23,7 +25,8 @@ export default function GlobalError({
           Something needs another try
         </h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          The page could not be loaded. Your data has not been changed.
+          The latest data could not be displayed. Reload and check the current
+          state before repeating a change.
         </p>
         <Button className="mt-6" onClick={reset}>
           Try again

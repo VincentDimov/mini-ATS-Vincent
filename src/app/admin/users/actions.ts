@@ -18,28 +18,86 @@ type CreateUserInput = {
   isOrgManager?: boolean;
 };
 
-export async function inviteRecruiter(input: { email: string; fullName: string; organizationId: string }): Promise<ActionResult> {
+export async function inviteRecruiter(input: {
+  email: string;
+  fullName: string;
+  organizationId: string;
+}): Promise<ActionResult> {
   const context = await requireProfile();
-  if (context.profile.role !== "admin" && (!context.profile.is_org_manager || context.profile.organization_id !== input.organizationId))
-    return { ok: false, error: "Only workspace managers can invite recruiters into their own workspace." };
+  if (
+    context.profile.role !== "admin" &&
+    (!context.profile.is_org_manager ||
+      context.profile.organization_id !== input.organizationId)
+  )
+    return {
+      ok: false,
+      error:
+        "Only workspace managers can invite recruiters into their own workspace.",
+    };
   try {
     const origin = process.env.SITE_URL;
-    if (!origin) throw new Error("Invitations require SITE_URL and configured SMTP.");
-    const value = validateAdminUserInput({ ...input, role: "customer", password: crypto.randomUUID() });
-    const organization = await context.supabase.from("organizations").select("id").eq("id", input.organizationId).single();
-    if (organization.error || !organization.data) throw new Error("Workspace unavailable.");
+    if (!origin)
+      throw new Error("Invitations require SITE_URL and configured SMTP.");
+    const value = validateAdminUserInput({
+      ...input,
+      role: "customer",
+      password: crypto.randomUUID(),
+    });
+    const organization = await context.supabase
+      .from("organizations")
+      .select("id")
+      .eq("id", input.organizationId)
+      .single();
+    if (organization.error || !organization.data)
+      throw new Error("Workspace unavailable.");
     const admin = createAdminClient();
-    const existing = await admin.from("profiles").select("id").eq("email", value.email).limit(1);
-    if (existing.error || existing.data?.length) throw new Error("This account already exists. Use account recovery or contact the administrator.");
-    const invited = await admin.auth.admin.inviteUserByEmail(value.email, { redirectTo: `${new URL(origin).origin}/reset-password`, data: { full_name: value.fullName } });
-    if (invited.error || !invited.data.user) throw new Error("Invitation could not be sent. Check SMTP and retry; existing accounts should use recovery.");
-    const saved = await admin.from("profiles").insert({ id: invited.data.user.id, email: value.email, full_name: value.fullName, role: "customer", organization_id: organization.data.id, is_active: true, is_org_manager: false });
+    const existing = await admin
+      .from("profiles")
+      .select("id")
+      .eq("email", value.email)
+      .limit(1);
+    if (existing.error || existing.data?.length)
+      throw new Error(
+        "This account already exists. Use account recovery or contact the administrator.",
+      );
+    const invited = await admin.auth.admin.inviteUserByEmail(value.email, {
+      redirectTo: `${new URL(origin).origin}/reset-password`,
+      data: { full_name: value.fullName },
+    });
+    if (invited.error || !invited.data.user)
+      throw new Error(
+        "Invitation could not be sent. Check SMTP and retry; existing accounts should use recovery.",
+      );
+    const saved = await admin
+      .from("profiles")
+      .insert({
+        id: invited.data.user.id,
+        email: value.email,
+        full_name: value.fullName,
+        role: "customer",
+        organization_id: organization.data.id,
+        is_active: true,
+        is_org_manager: false,
+      });
     // Never delete a potentially pre-existing Auth user as compensation for an
     // invite. An orphan without a profile has no application/RLS access.
-    if (saved.error) throw new Error("Invitation sent but access provisioning failed. Ask a platform admin to inspect the pending Auth account before retrying.");
-    revalidatePath("/admin", "layout"); revalidatePath("/dashboard", "layout");
-    return { ok: true, message: "Invitation sent. The recruiter chooses their own password; no password needs to be shared." };
-  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Invitation unavailable." }; }
+    if (saved.error)
+      throw new Error(
+        "Invitation sent but access provisioning failed. Ask a platform admin to inspect the pending Auth account before retrying.",
+      );
+    revalidatePath("/admin", "layout");
+    revalidatePath("/dashboard", "layout");
+    return {
+      ok: true,
+      message:
+        "Invitation sent. The recruiter chooses their own password; no password needs to be shared.",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Invitation unavailable.",
+    };
+  }
 }
 
 export async function createManagedUser(

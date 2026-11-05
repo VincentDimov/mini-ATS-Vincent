@@ -68,6 +68,8 @@ export function JobsManager({
   hideCreate?: boolean;
   isAdmin?: boolean;
 }) {
+  const [query, setQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   // A refreshed server snapshot intentionally remounts this local, optimistic
   // editor state instead of synchronously setting state from an effect.
   const snapshotKey = initialJobs
@@ -82,6 +84,10 @@ export function JobsManager({
       candidateCounts={candidateCounts}
       hideCreate={hideCreate}
       isAdmin={isAdmin}
+      query={query}
+      setQuery={setQuery}
+      showArchived={showArchived}
+      setShowArchived={setShowArchived}
     />
   );
 }
@@ -92,17 +98,23 @@ function JobsManagerContent({
   candidateCounts = {},
   hideCreate = false,
   isAdmin = false,
+  query,
+  setQuery,
+  showArchived,
+  setShowArchived,
 }: {
   initialJobs: Job[];
   organizationId?: string;
   candidateCounts?: Record<string, number>;
   hideCreate?: boolean;
   isAdmin?: boolean;
+  query: string;
+  setQuery: (query: string) => void;
+  showArchived: boolean;
+  setShowArchived: (showArchived: boolean) => void;
 }) {
   const router = useRouter();
   const [jobs] = useState(initialJobs);
-  const [query, setQuery] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
   const [open, setOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [draft, setDraft] = useState<JobDraft>(EMPTY_DRAFT);
@@ -214,7 +226,7 @@ function JobsManagerContent({
         <div className="flex gap-2">
           <Button
             variant={showArchived ? "outline" : "secondary"}
-            onClick={() => setShowArchived((current) => !current)}
+            onClick={() => setShowArchived(!showArchived)}
           >
             <Archive />
             {showArchived ? "Showing archived" : "Archived"}
