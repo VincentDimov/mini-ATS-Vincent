@@ -150,7 +150,10 @@ test("candidate collaboration, private PDF, bulk pipeline, interview and calenda
   await page.getByRole("button", { name: "Complete", exact: true }).click();
   await expect(page.getByText("completed", { exact: true })).toBeVisible();
   await page.goto("/dashboard/activity");
-  await expect(page.getByText("E2E Candidate").first()).toBeVisible();
+  await expect(
+    page.getByText("Candidate record", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("E2E Candidate", { exact: true })).toHaveCount(0);
   await page.screenshot({
     path: "test-results/activity-desktop.png",
     fullPage: true,
